@@ -57,7 +57,7 @@ type Order = {
   items: OrderItem[];
 };
 
-type CheckoutResponse = { data?: Order; error?: string };
+type CheckoutResponse = { data?: { order: Order; checkoutUrl: string | null; message?: string }; error?: string };
 
 const PAYMENT_METHODS = [
   { value: "card", label: "Credit / Debit Card" },
@@ -174,7 +174,6 @@ export function CheckoutView() {
           email: form.email,
           name: form.name,
           phone: form.phone,
-          paymentMethod: form.paymentMethod,
           sourceCurrency: "PKR",
         }),
       });
@@ -183,19 +182,18 @@ export function CheckoutView() {
         throw new Error(json.error ?? `Checkout failed (${res.status})`);
       }
       const ord = json.data!;
-      setOrder(ord);
       window.dispatchEvent(new Event("playbeat-cart-updated"));
-      trackMetaEvent(
-        "Purchase",
-        {
-          value: ord.total,
-          currency: ord.currency ?? "PKR",
-          content_type: "product",
-          num_items: ord.items.length,
-        },
-        `purchase_${ord.id}`
-      );
-      toast.success("Order placed!", { description: ord.orderNumber });
+
+      // If Rapid Gateway returned a checkout URL, redirect to it
+      if (ord.checkoutUrl) {
+        toast.success("Redirecting to payment…", { description: ord.order.orderNumber });
+        window.location.href = ord.checkoutUrl;
+        return;
+      }
+
+      // No gateway — show order as pending
+      setOrder(ord.order);
+      toast.success("Order placed!", { description: ord.order.orderNumber });
     } catch (e) {
       toast.error("Checkout failed", {
         description: e instanceof Error ? e.message : "Unknown error",
