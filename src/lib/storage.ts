@@ -64,7 +64,7 @@ export async function uploadFile(
         // Note: proper AWS SigV4 signing requires the AWS SDK.
         // This is a placeholder — install @aws-sdk/client-s3 for production use.
       },
-      body: buffer,
+      body: new Uint8Array(buffer) as BodyInit,
     });
 
     if (!response.ok) {

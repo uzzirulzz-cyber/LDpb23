@@ -11,13 +11,13 @@ export async function GET(req: Request) {
 
     let cart = await db.cart.findUnique({
       where: { sessionKey },
-      include: { items: { include: { product: true }, orderBy: { createdAt: "desc" } } },
-    });
+      include: { items: { include: { product: true } } },
+    }) as { id: string; sessionKey: string; items: Array<{ id: string; cartId: string; productId: string; quantity: number; product: { images: string; variants: string; [k: string]: unknown } }> } | null;
     if (!cart) {
       cart = await db.cart.create({
         data: { sessionKey },
         include: { items: { include: { product: true } } },
-      });
+      }) as { id: string; sessionKey: string; items: Array<{ id: string; cartId: string; productId: string; quantity: number; product: { images: string; variants: string; [k: string]: unknown } }> };
     }
 
     return NextResponse.json({
@@ -25,7 +25,7 @@ export async function GET(req: Request) {
         ...cart,
         items: cart.items.map((i) => ({
           ...i,
-          product: { ...i.product, images: safeParseArray(i.product.images), variants: safeParseArray(i.product.variants) },
+          product: { ...i.product, images: safeParseArray(i.product.images as string), variants: safeParseArray(i.product.variants as string) },
         })),
       },
     });
@@ -57,7 +57,7 @@ export async function POST(req: Request) {
     await db.cart.update({ where: { id: cart.id }, data: { updatedAt: new Date() } });
 
     return NextResponse.json({
-      data: { ...item, product: { ...item.product, images: safeParseArray(item.product.images), variants: safeParseArray(item.product.variants) } },
+      data: { ...item, product: { ...item.product, images: safeParseArray(item.product.images as string), variants: safeParseArray(item.product.variants as string) } },
     });
   } catch (err) {
     return NextResponse.json({ error: err instanceof Error ? err.message : "Unknown error" }, { status: 500 });

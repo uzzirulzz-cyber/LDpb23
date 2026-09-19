@@ -23,7 +23,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { StorefrontLayout } from "./layout";
 import { useCustomerId } from "./use-customer-id";
-import { formatMoney } from "@/lib/currency";
+import { formatMoney, type Currency } from "@/lib/currency";
 
 type OrderItem = {
   id: string;
@@ -430,7 +430,7 @@ function SignedIn({
                       {order.createdAt ? new Date(order.createdAt).toLocaleString() : "—"}
                     </span>
                     <span className="font-semibold text-amber-300">
-                      {formatMoney(order.total, order.currency ?? "PKR")}
+                      {formatMoney(order.total, (order.currency as Currency) ?? "PKR")}
                     </span>
                   </div>
 
@@ -445,7 +445,7 @@ function SignedIn({
                           <div className="min-w-0">
                             <p className="line-clamp-1 text-sm font-medium text-white">{item.name}</p>
                             <p className="text-[11px] text-slate-500">
-                              Qty {item.quantity} · {formatMoney(item.price * item.quantity, order.currency ?? "PKR")} · {item.deliveryType}
+                              Qty {item.quantity} · {formatMoney(item.price * item.quantity, (order.currency as Currency) ?? "PKR")} · {item.deliveryType}
                             </p>
                           </div>
                           {Array.isArray(item.licenseKeys) && item.licenseKeys.length > 0 && (
