@@ -5,18 +5,8 @@ import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Sheet,
-  SheetContent,
-  SheetTrigger,
-} from "@/components/ui/sheet";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sidebar } from "./sidebar";
 import { useDashboard } from "@/lib/store";
 import { CURRENCIES, type Currency } from "@/lib/currency";
@@ -37,7 +27,6 @@ export function Topbar() {
 
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-border bg-background/80 px-4 backdrop-blur-md md:px-6">
-      {/* Mobile menu */}
       <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
         <SheetTrigger asChild>
           <Button variant="ghost" size="icon" className="md:hidden">
@@ -49,78 +38,43 @@ export function Topbar() {
         </SheetContent>
       </Sheet>
 
-      {/* Search */}
       <div className="relative hidden flex-1 max-w-md sm:block">
         <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input
-          placeholder="Search leads, companies, deals…"
-          className="h-9 pl-9 pr-4 bg-muted/50 border-0 focus-visible:ring-1 focus-visible:ring-primary"
+          placeholder="Search leads, orders, products, contacts…"
+          className="h-9 pl-9 pr-4 border-0 bg-muted/50 focus-visible:ring-1 focus-visible:ring-primary"
           onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              setSection("leads");
-              toast("Search", { description: "Jumped to Leads workspace" });
-            }
+            if (e.key === "Enter") { setSection("leads"); toast("Search", { description: "Jumped to Leads Explorer" }); }
           }}
         />
       </div>
 
       <div className="flex flex-1 items-center justify-end gap-2 sm:flex-none">
-        {/* Currency switcher */}
         <div className="flex items-center gap-2">
           <span className="hidden text-xs font-medium text-muted-foreground lg:inline">Display</span>
           <Select value={displayCurrency} onValueChange={(v) => setDisplayCurrency(v as Currency)}>
-            <SelectTrigger className="h-9 w-[92px] gap-1.5 font-semibold">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {CURRENCIES.map((c) => (
-                <SelectItem key={c} value={c} className="font-medium">
-                  {c}
-                </SelectItem>
-              ))}
-            </SelectContent>
+            <SelectTrigger className="h-9 w-[92px] gap-1.5 font-semibold"><SelectValue /></SelectTrigger>
+            <SelectContent>{CURRENCIES.map((c) => (<SelectItem key={c} value={c} className="font-medium">{c}</SelectItem>))}</SelectContent>
           </Select>
         </div>
-
-        {/* New Lead (fires Meta Pixel Lead event) */}
-        <Button
-          size="sm"
-          className="hidden h-9 gap-1.5 sm:inline-flex"
-          onClick={() => {
-            // Demo: fire a Meta Lead event end-to-end
-            trackLead(2500, displayCurrency, "demo@playbeat.io", "+923001234567");
-            toast.success("Meta Pixel Lead event fired", {
-              description: `Tracked Lead ($${2500} ${displayCurrency}) via client + CAPI`,
-            });
-          }}
-        >
-          <Plus className="h-4 w-4" />
-          Track Lead
+        <Button size="sm" className="hidden h-9 gap-1.5 sm:inline-flex" onClick={() => {
+          trackLead(2500, displayCurrency, "demo@playbeat.digital", "+923001234567");
+          toast.success("Meta Pixel Lead event fired", { description: `Tracked Lead ($2,500 ${displayCurrency}) client + CAPI` });
+        }}>
+          <Plus className="h-4 w-4" /> Track Lead
         </Button>
-
-        {/* Theme toggle */}
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-9 w-9"
-          onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-          aria-label="Toggle theme"
-        >
+        <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => setTheme(theme === "dark" ? "light" : "dark")} aria-label="Toggle theme">
           {mounted && theme === "dark" ? <Sun className="h-4.5 w-4.5" /> : <Moon className="h-4.5 w-4.5" />}
         </Button>
-
-        {/* Notifications */}
         <Button variant="ghost" size="icon" className="relative h-9 w-9" aria-label="Notifications">
           <Bell className="h-4.5 w-4.5" />
           <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-rose-500 ring-2 ring-background" />
         </Button>
-
-        {/* Profile */}
-        <button className="flex items-center gap-2 rounded-full border border-border bg-background pl-0.5 pr-3 py-0.5 transition-colors hover:bg-muted/50">
-          <MiniAvatar name="Ayesha Khan" size="sm" />
+        <button className="flex items-center gap-2 rounded-full border border-border bg-background py-0.5 pl-0.5 pr-3 transition-colors hover:bg-muted/50">
+          <MiniAvatar name="Hira Sheikh" size="sm" />
           <div className="hidden text-left leading-tight md:block">
-            <div className="text-xs font-semibold">Ayesha Khan</div>
-            <div className="text-[10px] text-muted-foreground">Sales Manager</div>
+            <div className="text-xs font-semibold">Hira Sheikh</div>
+            <div className="text-[10px] text-muted-foreground">Admin</div>
           </div>
         </button>
       </div>
