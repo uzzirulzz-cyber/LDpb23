@@ -312,7 +312,7 @@ function SignedIn({
             {isStaff && (
               <Row label="Staff access" value={
                 <Button asChild size="sm" variant="default" className="h-7">
-                  <Link href="/crm"><LayoutDashboard className="size-3" /> CRM</Link>
+                  <Link href="/admin"><LayoutDashboard className="size-3" /> Admin Panel</Link>
                 </Button>
               } />
             )}

@@ -63,11 +63,20 @@ export function StorefrontHeader() {
       <Link href="/products" className="text-sm font-medium text-foreground/80 hover:text-foreground transition-colors">
         Products
       </Link>
+      <Link href="/pricing" className="text-sm font-medium text-foreground/80 hover:text-foreground transition-colors">
+        Pricing
+      </Link>
+      <Link href="/about" className="text-sm font-medium text-foreground/80 hover:text-foreground transition-colors">
+        About
+      </Link>
+      <Link href="/contact" className="text-sm font-medium text-foreground/80 hover:text-foreground transition-colors">
+        Contact
+      </Link>
       <Link href="/cart" className="text-sm font-medium text-foreground/80 hover:text-foreground transition-colors">
         Cart
       </Link>
-      <Link href="/crm" className="text-sm font-medium text-foreground/80 hover:text-foreground transition-colors">
-        CRM
+      <Link href="/admin" className="text-sm font-medium text-foreground/80 hover:text-foreground transition-colors">
+        Admin
       </Link>
       <Link href="/account" className="text-sm font-medium text-foreground/80 hover:text-foreground transition-colors">
         Account
@@ -131,9 +140,9 @@ export function StorefrontHeader() {
           </Button>
 
           <Button asChild size="sm" className="hidden sm:inline-flex">
-            <Link href="/crm">
+            <Link href="/admin">
               <LayoutDashboard className="size-4" />
-              CRM
+              Admin
             </Link>
           </Button>
 
@@ -150,8 +159,11 @@ export function StorefrontHeader() {
               </SheetTitle>
               <nav className="mt-4 flex flex-col gap-1">
                 <Link href="/products" className="rounded-md px-3 py-2 text-sm hover:bg-accent">Products</Link>
+                <Link href="/pricing" className="rounded-md px-3 py-2 text-sm hover:bg-accent">Pricing</Link>
+                <Link href="/about" className="rounded-md px-3 py-2 text-sm hover:bg-accent">About</Link>
+                <Link href="/contact" className="rounded-md px-3 py-2 text-sm hover:bg-accent">Contact</Link>
                 <Link href="/cart" className="rounded-md px-3 py-2 text-sm hover:bg-accent">Cart {count > 0 ? `(${count})` : ""}</Link>
-                <Link href="/crm" className="rounded-md px-3 py-2 text-sm hover:bg-accent">CRM</Link>
+                <Link href="/admin" className="rounded-md px-3 py-2 text-sm hover:bg-accent">Admin</Link>
                 <Link href="/account" className="rounded-md px-3 py-2 text-sm hover:bg-accent">Account</Link>
               </nav>
               <form

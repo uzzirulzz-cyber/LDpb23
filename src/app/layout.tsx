@@ -19,29 +19,31 @@ const jetMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "PLAYBEAT PULSE — Lead Intelligence & Sales CRM",
+  title: "playbeat.digital — Instant Digital Delivery · Gaming Keys, Subscriptions, AI Tools & Smart Projectors",
   description:
-    "Enterprise-grade Lead Intelligence, Lead Routing & Sales CRM for Playbeat with multi-currency PKR/USD/AED support, multi-source waterfall discovery, and Meta & WhatsApp communication center.",
+    "Premium digital marketplace for gaming keys, subscriptions, AI tools, SaaS licenses & smart projectors. Instant delivery, verified keys, PKR pricing. The Playbeat CRM + Storefront platform.",
   keywords: [
-    "PLAYBEAT PULSE",
-    "Lead Intelligence",
-    "Sales CRM",
-    "Lead Routing",
-    "Multi-currency",
-    "Meta Pixel",
-    "WhatsApp",
+    "playbeat.digital",
+    "digital marketplace",
+    "gaming keys",
+    "subscriptions",
+    "AI tools",
+    "SaaS licenses",
+    "smart projectors",
+    "instant delivery",
+    "PKR pricing",
+    "CRM",
   ],
-  authors: [{ name: "Playbeat" }],
+  authors: [{ name: "Playbeat Digital" }],
   openGraph: {
-    title: "PLAYBEAT PULSE",
-    description:
-      "Enterprise-grade Lead Intelligence, Lead Routing & Sales CRM for Playbeat with multi-currency PKR/USD/AED support.",
+    title: "playbeat.digital — Instant Digital Delivery",
+    description: "Premium digital marketplace. Gaming keys, subscriptions, AI tools & smart projectors. Instant delivery, PKR pricing.",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "PLAYBEAT PULSE",
-    description: "Enterprise Lead Intelligence & Sales CRM",
+    title: "playbeat.digital — Instant Digital Delivery",
+    description: "Premium digital marketplace. Gaming keys, subscriptions, AI tools & smart projectors.",
   },
 };
 

@@ -75,7 +75,7 @@ export function StorefrontFooter() {
               <li><Link href="/account" className="hover:text-foreground">Sign In</Link></li>
               <li><Link href="/account" className="hover:text-foreground">Order History</Link></li>
               <li><Link href="/account" className="hover:text-foreground">License Keys</Link></li>
-              <li><Link href="/crm" className="hover:text-foreground">CRM Login</Link></li>
+              <li><Link href="/admin" className="hover:text-foreground">Admin Panel</Link></li>
             </ul>
           </div>
 
@@ -84,6 +84,9 @@ export function StorefrontFooter() {
             <ul className="space-y-2 text-sm text-muted-foreground">
               <li><Link href="/products" className="hover:text-foreground">Delivery Info</Link></li>
               <li><Link href="/products" className="hover:text-foreground">Returns</Link></li>
+              <li><Link href="/about" className="hover:text-foreground">About Us</Link></li>
+              <li><Link href="/contact" className="hover:text-foreground">Contact</Link></li>
+              <li><Link href="/pricing" className="hover:text-foreground">Pricing</Link></li>
               <li><Link href="/products" className="hover:text-foreground">Privacy Policy</Link></li>
               <li><Link href="/products" className="hover:text-foreground">Terms</Link></li>
             </ul>

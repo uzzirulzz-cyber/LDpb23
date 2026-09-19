@@ -3,7 +3,7 @@
 import Image from "next/image";
 import {
   LayoutDashboard, Users, Contact, Building2, Filter, Plug,
-  Waves, Workflow, Rule, Bot, Inbox, ShoppingCart, Package,
+  Waves, Workflow, Gavel, Bot, Inbox, ShoppingCart, Package,
   BarChart3, Plug2, ScrollText, Settings, Radio,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -36,7 +36,7 @@ const GROUPS: { group: string; items: NavItem[] }[] = [
       { id: "api-runs", label: "API Runs", icon: Plug },
       { id: "waterfall", label: "Waterfall Engine", icon: Waves },
       { id: "workflows", label: "Workflows", icon: Workflow },
-      { id: "rules", label: "Rules", icon: Rule },
+      { id: "rules", label: "Rules", icon: Gavel },
       { id: "bots", label: "Bots", icon: Bot },
     ],
   },

@@ -352,3 +352,72 @@ Stage Summary:
 - Audit logs on all mutations.
 - Meta Pixel (1052867624415243) client + CAPI.
 - Checkout pipeline verified: cart → order → customer → license keys → analytics → CRM dashboard revenue.
+
+---
+Task ID: 3-pages
+Agent: pages-builder
+Task: Build 3 storefront marketing pages (Pricing, About, Contact) as route + component pairs.
+
+Work Log:
+- Read worklog.md (Task 0/2-store-ui/8-crm-ops/9 context), src/components/storefront/layout.tsx (StorefrontLayout = ThemeProvider + sticky glass StorefrontHeader + StorefrontFooter), src/components/storefront/home.tsx (style reference: gradient-card, premium-shadow, glass, blue primary, Sparkles/ArrowRight patterns, PRICING/FAQS data, hero gradient), src/components/storefront/header.tsx (already links to /pricing, /about, /contact — routes were dead links before this task), src/app/layout.tsx (SonnerToaster richColors position="top-right" already wired → toast from "sonner" works out of the box), src/app/products/page.tsx (route→component pattern reference).
+- Confirmed shadcn ui components available: button, input, textarea, label (all used). Sonner toaster wired globally.
+- Created 3 directories under src/app/ (pricing/, about/, contact/) — they did not exist before.
+- Created 6 files total:
+
+1. src/components/storefront/pricing.tsx — PricingPage export. Wrapped in StorefrontLayout. Sections: (a) Hero with logo, "Simple, transparent pricing" headline + gradient span, "PKR pricing for everyone. Upgrade when you need more." subhead, trust badges (no hidden fees / secure checkout / 24/7 support). (b) 3 detailed pricing tiers — Starter (Free, forever, 7 features), Pro Buyer (₨ 1,000/month, 9 features, "Most popular" badge with ring-2 ring-primary/30 + gradient-card), Business (Custom, 10 features). Each tier has icon tile (Store/Zap/Crown), tagline, full feature list with Check icons, CTA button (→ /products, /account, /contact). (c) Comparison table — 18 rows across 5 groups (Catalog & access, Delivery & speed, Pricing & discounts, Support & account, Billing & integrations) — each row has icon + label + 3 cell values (Check/X/string). Rendered with React.Fragment keyed group wrappers (no bare <> with key). Popular tier header highlighted in primary color. Responsive horizontal scroll on mobile. (d) FAQ snippet — 3 pricing-related Qs (switch/cancel, 5% Pro discount, business invoicing) with accordion state via useState + ChevronDown. Link to homepage /#faq. (e) Final CTA: "Not sure? Start free" gradient banner → /products.
+
+2. src/components/storefront/about.tsx — AboutPage export. Wrapped in StorefrontLayout. Sections: (a) Hero with logo (88x88), "Powering digital commerce in Pakistan & beyond" headline + gradient span, mission statement subhead ("make buying digital products… as fast, trustworthy and locally-priced as buying a cup of chai"), CTA buttons (Browse catalog → /products, Talk to us → /contact). (b) Stats bar (4 KPIs: 50K+ keys, 4.9/5 rating, <30s avg delivery, 99.9% uptime — mirrors homepage STATS). (c) Story section — rounded gradient-card with "Our story" badge, "From a single desk in Lahore…" headline, 3 paragraphs covering the founding story (gaming-key shop in Lahore → full digital marketplace across PK/UAE/KSA), the problem they solve, and the current scale. (d) Values grid (4 cards: Speed/Zap/instant delivery, Trust/ShieldCheck/verified keys, Value/BadgeRupee/PKR pricing, Support/Headset/24/7 humans) — each with gradient icon tile, headline, description. (e) Mission/Vision/Promise strip (3 cards with Target/Eye/Heart icons). (f) Team placeholder section — "Led by a team of builders in Lahore, Dubai & Islamabad" with 3 cards: Founder & CEO (Lahore), CTO (Islamabad), Head of Ops (Dubai). Functional role names + bios only, no fake personal data — explicit note "Roles shown are functional placeholders — we'll add real faces & bios as the team grows." (g) CTA: "Join thousands of happy customers" gradient banner → /products.
+
+3. src/components/storefront/contact.tsx — ContactPage export. Wrapped in StorefrontLayout. Sections: (a) Hero with logo, "Get in touch" headline + gradient span, "Sales, support, partnerships — we reply fast." subhead, badges (24/7 support, fast replies, verified team). (b) Two-column grid: LEFT = contact form (name, email, subject inputs + message Textarea + Submit button). On submit: e.preventDefault, 500ms simulated delay, toast.success("Message sent", { description: "We'll get back to you within a few hours." }) via sonner, then form.reset(). No backend. Uses Input/Textarea/Label shadcn primitives. Spinner state on button while submitting. RIGHT = contact info card listing Email (hello@playbeat.digital → mailto), WhatsApp (+92 300 1234567 → wa.me/923001234567), Location (Lahore, Pakistan), Support hours (24/7). Each row is clickable if href provided. Plus a WhatsApp urgency card with green primary CTA "Chat on WhatsApp". (c) 3 quick-action cards below: "Sales inquiry" (ShoppingBag → mailto:hello@playbeat.digital?subject=Sales%20inquiry), "Support ticket" (LifeBuoy → /account via Link), "Partnership" (Handshake → #contact-form anchor via Link). Cards have group hover translate effect. (d) FAQ link section: "Have a question we haven't answered?" card → /#faq.
+
+4. src/app/pricing/page.tsx — "use client", default export renders <PricingPage /> from @/components/storefront/pricing.
+5. src/app/about/page.tsx — "use client", default export renders <AboutPage /> from @/components/storefront/about.
+6. src/app/contact/page.tsx — "use client", default export renders <ContactPage /> from @/components/storefront/contact.
+
+Conventions honored:
+- All 6 files "use client".
+- Components import { StorefrontLayout } from "./layout" (relative, since they live in src/components/storefront/).
+- Routes import from "@/components/storefront/<name>" (absolute alias).
+- Button from "@/components/ui/button", Input/Textarea/Label from "@/components/ui/*", toast from "sonner".
+- Link from "next/link", Image from "next/image", lucide-react icons throughout.
+- Premium theme classes used: .glass (hero badges), .gradient-card (cards/sections), .premium-shadow (logos, pricing cards, CTA banners, form card, info card).
+- Blue primary color throughout (from-primary to-blue-500/700 gradients).
+- PKR (₨) for all pricing — Pro Buyer tier "₨ 1,000/month"; footer note "All prices in Pakistani Rupee (₨)".
+- Mobile-first responsive: grids collapse 1-col → 2-col → 3/4-col; comparison table has min-w-[760px] with overflow-x-auto on mobile; nav already in header handles mobile via Sheet.
+- Logo via next/image at /playbeat-logo.png on every page hero.
+- No backend wiring for the contact form (per spec — toast only). Form fields use proper autoComplete attrs and htmlFor/Label associations.
+
+Files created (6):
+- src/components/storefront/pricing.tsx (~440 lines)
+- src/components/storefront/about.tsx (~270 lines)
+- src/components/storefront/contact.tsx (~350 lines)
+- src/app/pricing/page.tsx (8 lines)
+- src/app/about/page.tsx (8 lines)
+- src/app/contact/page.tsx (8 lines)
+
+Next Actions:
+- Run dev/lint to verify (skipped per instructions). Expected: 0 errors. One thing to watch — if tsconfig has noUnusedLocals, double-check that every imported lucide icon is rendered (I cross-verified all imports are used).
+- The header.tsx already had dead /pricing, /about, /contact links — this task makes them live.
+- Optional: add Next.js generateMetadata or a "use client" server wrapper for SEO titles per page (currently pure client components, which is fine for a marketing page but loses SSR title metadata — consider exporting a server-side metadata from a parent layout.tsx in each route folder if SEO matters).
+- Optional: wire the contact form to a real backend (/api/contact → email/Slack/CRM lead) when ready; the toast-only flow is intentionally honest about being frontend-only.
+
+---
+Task ID: 10
+Agent: orchestrator
+Task: Restructure — storefront as full SaaS website at /, CRM + admin moved to /admin.
+
+Work Log:
+- Moved /crm route to /admin (renamed src/app/crm → src/app/admin). Updated all 7 UI link references (/crm → /admin) in header.tsx, footer.tsx, home.tsx, account.tsx.
+- Rebuilt homepage (src/components/storefront/home.tsx) as a full SaaS website: hero, stats bar (50K+ keys, 4.9/5, <30s, 99.9%), features strip, how-it-works (4 steps), category cards, trending products, PRICING section (3 tiers: Starter/Pro Buyer/Business with feature lists), testimonials (4 reviews), FAQ accordion (6 Qs), newsletter signup (10% off), admin CTA.
+- Built 3 new marketing routes: /pricing (3 tiers + 18-row comparison table + FAQ), /about (story, values, stats, team), /contact (form + contact info + quick actions).
+- Updated header nav: Products, Pricing, About, Contact, Cart, Admin, Account. Updated footer links similarly.
+- Fixed 2 invalid lucide-react imports: BadgeRupee → IndianRupee (about.tsx), Rule → Gavel (crm/sidebar.tsx).
+- Updated layout metadata: title now "playbeat.digital — Instant Digital Delivery · Gaming Keys, Subscriptions, AI Tools & Smart Projectors" + SaaS description.
+- Lint: 0 errors, 0 warnings.
+- Verified all 8 routes return 200: / /products /pricing /about /contact /cart /account /admin.
+
+Stage Summary:
+- playbeat.digital is now a full SaaS website at / (storefront + marketing).
+- CRM + all admin at /admin (17 sections, unchanged functionality).
+- Clean separation: customer-facing SaaS site vs internal admin control center.
+- 4GB sandbox constraint: local Agent Browser cannot coexist with dev server (OOM). User's remote Preview browser works fine.
