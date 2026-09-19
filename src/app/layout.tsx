@@ -18,6 +18,8 @@ const jetMono = JetBrains_Mono({
   display: "swap",
 });
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   metadataBase: new URL("https://playbeat.digital"),
   title: "playbeat.digital — Instant Digital Delivery · Gaming Keys, Subscriptions, AI Tools & Smart Projectors",

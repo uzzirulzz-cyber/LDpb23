@@ -5,13 +5,12 @@ import FacebookProvider from "next-auth/providers/facebook";
 import bcrypt from "bcryptjs";
 import { db } from "@/lib/db";
 
-/**
- * Playbeat.digital auth — server-side verified.
- * Google + Facebook use OAuth with server-side token verification via NextAuth callbacks.
- * Credentials provider verifies password hash server-side.
- * No secrets are exposed to the frontend — they live in process.env (server-only).
- */
+// Fallbacks so build-time prerendering never crashes with new URL('').
+const NEXTAUTH_SECRET = process.env.NEXTAUTH_SECRET || "playbeat-dev-secret-not-for-production";
+const NEXTAUTH_URL = process.env.NEXTAUTH_URL || "http://localhost:3000";
+
 export const authOptions: NextAuthOptions = {
+  secret: NEXTAUTH_SECRET,
   session: { strategy: "jwt" },
   pages: { signIn: "/account" },
   providers: [
