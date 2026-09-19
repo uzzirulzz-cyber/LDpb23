@@ -421,3 +421,30 @@ Stage Summary:
 - CRM + all admin at /admin (17 sections, unchanged functionality).
 - Clean separation: customer-facing SaaS site vs internal admin control center.
 - 4GB sandbox constraint: local Agent Browser cannot coexist with dev server (OOM). User's remote Preview browser works fine.
+
+---
+Task ID: 11
+Agent: orchestrator
+Task: Migrate to PostgreSQL (Neon) + S3 storage + sitemap + push to GitHub.
+
+Work Log:
+- Migrated Prisma datasource from SQLite to PostgreSQL: provider="postgresql", url=pooled (DATABASE_URL), directUrl=direct (DIRECT_URL for migrations).
+- Updated .env with Neon Postgres credentials (pooled + direct URLs). S3 storage env vars (AWS_ENDPOINT_URL_S3, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_REGION, S3_BUCKET) — AWS keys are placeholders ("<generate-key>") until real keys are generated in Neon Storage console.
+- Created .env.example (safe template, no real secrets) for GitHub.
+- Untracked .env and db/custom.db from git (secrets/local data stay out of repo). Updated .gitignore: added !.env.example exception, /db/*.db ignore.
+- Pushed schema to Neon Postgres: `prisma db push` succeeded (21s, all tables created).
+- Ran seed against Postgres: admin user + 22 products + 13 funnel stages + 9 bots + 10 integrations + 5 API providers + 5 waterfall sources + 6 homepage blocks. Zero mock business data.
+- Copied real playbeat.digital sitemap.xml (80+ product URLs) to /public/sitemap.xml.
+- Created Next.js vercel.json (framework=nextjs, buildCommand="prisma generate && next build", installCommand="bun install").
+- Created S3 storage helper (src/lib/storage.ts) — getStorageConfig(), uploadFile(), getPublicUrl(). Honest: returns null if credentials are placeholders.
+- Verified app works on Postgres: all 9 routes return 200 (/, /admin, /products, /pricing, /about, /contact, /api/store/products, /api/crm/dashboard, /api/crm/leads). Real data: Crunchyroll Mega 1-Month ₨1,800. CRM: 9 idle bots, 0 orders (zero-mock empty state).
+- Git: committed (670c168), remote added (origin → github.com/uzzirulzz-cyber/ldpulse.git), 235 files tracked.
+- GitHub push: BLOCKED — no GitHub credentials (PAT/SSH) configured in this environment. User needs to push manually or provide a token.
+
+Stage Summary:
+- Database: migrated from SQLite to Neon PostgreSQL (serverless, pooled). Schema synced + seeded.
+- Storage: S3-compatible (Neon Storage) helper ready — AWS keys need to be generated in Neon console.
+- Sitemap: real playbeat.digital sitemap.xml (80+ URLs) in /public.
+- Vercel: Next.js vercel.json configured for deployment.
+- Git: committed locally, remote configured, ready to push.
+- Push command for user: `git push -u origin main` (requires GitHub auth).
