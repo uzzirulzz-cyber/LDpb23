@@ -149,7 +149,7 @@ export function CheckoutView() {
       toast.error("Unable to identify customer. Please enable cookies.");
       return;
     }
-    if (!form.name.trim() || !form.email.trim() || !form.city.trim() || !form.address.trim()) {
+    if (!form.name.trim() || !form.email.trim() || !form.phone.trim() || !form.city.trim() || !form.address.trim()) {
       toast.error("Please fill in all required fields.");
       return;
     }
@@ -186,7 +186,7 @@ export function CheckoutView() {
 
       // If Rapid Gateway returned a checkout URL, redirect to it
       if (ord.checkoutUrl) {
-        toast.success("Redirecting to payment…", { description: ord.order.orderNumber });
+        toast.success("Redirecting to secure payment…", { description: ord.order.orderNumber });
         window.location.href = ord.checkoutUrl;
         return;
       }

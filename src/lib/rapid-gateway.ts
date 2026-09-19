@@ -1,12 +1,5 @@
 // Rapid Gateway payment integration — server-side only.
 // All credentials live in process.env. Never expose to frontend.
-//
-// Flow:
-//   1. getAccessToken() — OAuth2 client_credentials (Basic auth)
-//   2. createTransaction() — submit form-encoded txn, get checkout redirect URL
-//   3. verifyWebhookSignature() — HMAC-SHA256(salt, timestamp + "." + rawBody)
-//
-// Webhook events: transaction.completed, transaction.failed, refund.completed, etc.
 
 import crypto from "crypto";
 
@@ -23,14 +16,14 @@ export function isRapidGatewayConfigured(): boolean {
 
 /**
  * Step 1: Get OAuth2 bearer token using client_credentials grant.
- * Auth: Basic base64(merchantId:secretKey)
  */
 export async function getAccessToken(): Promise<string> {
   if (!isRapidGatewayConfigured()) {
-    throw new Error("Rapid Gateway not configured — set RAPID_GATEWAY_MERCHANT_ID and RAPID_GATEWAY_SECRET_KEY");
+    throw new Error("Rapid Gateway not configured");
   }
 
   const credentials = Buffer.from(`${MERCHANT_ID}:${SECRET_KEY}`).toString("base64");
+  console.log("[rapid-gateway] Requesting OAuth token from", OAUTH_URL);
 
   const response = await fetch(OAUTH_URL, {
     method: "POST",
@@ -41,14 +34,16 @@ export async function getAccessToken(): Promise<string> {
     body: new URLSearchParams({ grant_type: "client_credentials" }).toString(),
   });
 
+  const responseText = await response.text();
+  console.log("[rapid-gateway] OAuth response:", response.status);
+
   if (!response.ok) {
-    const text = await response.text();
-    throw new Error(`Rapid Gateway OAuth failed (${response.status}): ${text}`);
+    throw new Error(`OAuth failed (${response.status}): ${responseText.substring(0, 200)}`);
   }
 
-  const data = await response.json() as { access_token?: string; error?: string };
+  const data = JSON.parse(responseText) as { access_token?: string; error?: string };
   if (!data.access_token) {
-    throw new Error(`Rapid Gateway OAuth error: ${data.error || "no access_token"}`);
+    throw new Error(`OAuth error: ${data.error || "no access_token"}`);
   }
 
   return data.access_token;
@@ -70,28 +65,30 @@ export interface TransactionResult {
 
 /**
  * Step 2: Submit transaction to Rapid Gateway.
- * Returns the checkout URL to redirect the customer to.
- *
- * Uses fetch with redirect: "manual" to capture the Location header
- * (Rapid Gateway returns a 302 redirect to the hosted checkout page).
+ * Rapid Gateway returns a 302 redirect with Location header containing
+ * the hosted checkout URL.
  */
 export async function createTransaction(params: TransactionParams): Promise<TransactionResult> {
   const token = await getAccessToken();
 
-  const formData = new URLSearchParams({
-    MERCHANT_ID: MERCHANT_ID,
-    MERCHANT_NAME: "Playbeat Digital",
-    TXNAMT: params.amount.toFixed(2),
-    CURRENCY_CODE: params.currency,
-    CUSTOMER_MOBILE_NO: params.customerPhone,
-    CUSTOMER_EMAIL_ADDRESS: params.customerEmail,
-    BASKET_ID: params.orderNumber,
-    SUCCESS_URL: `${BASE_URL}/payment/success?order=${params.orderNumber}`,
-    FAILURE_URL: `${BASE_URL}/payment/failure?order=${params.orderNumber}`,
-    CHECKOUT_URL: `${BASE_URL}/payment/complete?order=${params.orderNumber}`,
-    VERSION: "MY_VER_1.0",
-    PROCCODE: "0",
-  });
+  // Amount must be a plain integer string — Rapid Gateway expects "2999" not "2999.00"
+  const txnAmt = String(Math.round(params.amount));
+
+  const formData = new URLSearchParams();
+  formData.append("MERCHANT_ID", MERCHANT_ID);
+  formData.append("MERCHANT_NAME", "Playbeat Digital");
+  formData.append("TXNAMT", txnAmt);
+  formData.append("CURRENCY_CODE", params.currency);
+  formData.append("CUSTOMER_MOBILE_NO", params.customerPhone || "03000000000");
+  formData.append("CUSTOMER_EMAIL_ADDRESS", params.customerEmail);
+  formData.append("BASKET_ID", params.orderNumber);
+  formData.append("SUCCESS_URL", `${BASE_URL}/payment/success?order=${params.orderNumber}`);
+  formData.append("FAILURE_URL", `${BASE_URL}/payment/failure?order=${params.orderNumber}`);
+  formData.append("CHECKOUT_URL", `${BASE_URL}/payment/complete?order=${params.orderNumber}`);
+  formData.append("VERSION", "MY_VER_1.0");
+  formData.append("PROCCODE", "0");
+
+  console.log("[rapid-gateway] Submitting txn:", { txnAmt, currency: params.currency, order: params.orderNumber });
 
   const response = await fetch(TXN_URL, {
     method: "POST",
@@ -100,50 +97,38 @@ export async function createTransaction(params: TransactionParams): Promise<Tran
       "Authorization": `Bearer ${token}`,
     },
     body: formData.toString(),
-    redirect: "manual", // capture the 302 Location header
+    redirect: "manual",
   });
 
-  // Rapid Gateway returns a 302 redirect to the hosted checkout
+  console.log("[rapid-gateway] Txn response:", response.status);
+
+  // Rapid Gateway returns 302 with Location header
   const location = response.headers.get("location");
   if (location) {
+    console.log("[rapid-gateway] Checkout URL:", location.substring(0, 80) + "...");
     return { checkoutUrl: location, merchantTransactionId: params.orderNumber };
   }
 
-  // If no redirect, try to parse JSON response (some integrations return JSON)
-  if (response.status >= 200 && response.status < 300) {
-    const text = await response.text();
+  // Fallback: try JSON response
+  const text = await response.text();
+  console.log("[rapid-gateway] Response body:", text.substring(0, 300));
+
+  if (response.status >= 200 && response.status < 400) {
     try {
       const json = JSON.parse(text);
-      if (json.checkoutUrl || json.checkout_url || json.redirectUrl) {
-        return {
-          checkoutUrl: json.checkoutUrl || json.checkout_url || json.redirectUrl,
-          merchantTransactionId: json.merchantTransactionId || params.orderNumber,
-        };
-      }
+      const url = json.checkoutUrl || json.checkout_url || json.redirectUrl || json.url;
+      if (url) return { checkoutUrl: url, merchantTransactionId: params.orderNumber };
     } catch {
-      // not JSON
+      if (text.startsWith("http")) return { checkoutUrl: text.trim(), merchantTransactionId: params.orderNumber };
     }
   }
 
-  const errorText = await response.text().catch(() => "unknown");
-  throw new Error(`Rapid Gateway transaction failed (${response.status}): ${errorText}`);
+  throw new Error(`Transaction failed (${response.status}): ${text.substring(0, 300)}`);
 }
 
 /**
  * Verify Rapid Gateway webhook signature.
- *
- * Signature = HMAC-SHA256(secret = webhook salt, message = timestamp + "." + rawBody)
- * Encoded as uppercase hex.
- *
- * Rules:
- *   1. Reject if timestamp is more than 5 minutes from now.
- *   2. Recompute HMAC over timestamp + "." + rawBody.
- *   3. Constant-time compare against X-RapidGateway-Signature.
- *
- * @param timestamp - X-RapidGateway-Timestamp header (Unix epoch seconds)
- * @param rawBody - raw request body bytes (NOT re-serialized JSON)
- * @param signature - X-RapidGateway-Signature header (uppercase hex)
- * @returns true if signature is valid
+ * HMAC-SHA256(salt, timestamp + "." + rawBody), uppercase hex.
  */
 export function verifyWebhookSignature(
   timestamp: string,
@@ -151,20 +136,15 @@ export function verifyWebhookSignature(
   signature: string
 ): boolean {
   if (!WEBHOOK_SALT) {
-    console.warn("[rapid-gateway] Webhook salt not configured — rejecting all webhooks");
+    console.warn("[rapid-gateway] Webhook salt not configured");
     return false;
   }
 
-  // 1. Check timestamp window (5 minutes = 300 seconds)
   const ts = Number(timestamp);
   if (isNaN(ts)) return false;
   const now = Math.floor(Date.now() / 1000);
-  if (Math.abs(now - ts) > 300) {
-    console.warn(`[rapid-gateway] Webhook timestamp outside 5-min window: ts=${ts}, now=${now}`);
-    return false;
-  }
+  if (Math.abs(now - ts) > 300) return false;
 
-  // 2. Recompute HMAC-SHA256
   const message = `${timestamp}.${rawBody}`;
   const expected = crypto
     .createHmac("sha256", WEBHOOK_SALT)
@@ -172,7 +152,6 @@ export function verifyWebhookSignature(
     .digest("hex")
     .toUpperCase();
 
-  // 3. Constant-time compare
   const a = Buffer.from(expected);
   const b = Buffer.from(signature);
   if (a.length !== b.length) return false;
