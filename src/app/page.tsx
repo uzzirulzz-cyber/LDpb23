@@ -1,12 +1,7 @@
 "use client";
 
-import { ThemeProvider } from "@/components/theme-provider";
-import { DashboardShell } from "@/components/dashboard/dashboard-shell";
+import { StorefrontHome } from "@/components/storefront/home";
 
-export default function Home() {
-  return (
-    <ThemeProvider>
-      <DashboardShell />
-    </ThemeProvider>
-  );
+export default function Page() {
+  return <StorefrontHome />;
 }

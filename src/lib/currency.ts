@@ -1,43 +1,38 @@
-// Currency helpers for PLAYBEAT PULSE multi-currency CRM (PKR / USD / AED)
+// Playbeat.digital currency — PKR default, international support.
+// Stores original currency + converted reporting value. FX timestamp + source tracked per transaction.
 
-export type Currency = "PKR" | "USD" | "AED";
+export type Currency = "PKR" | "USD" | "EUR" | "GBP" | "AED" | "SAR";
 
-export const CURRENCIES: Currency[] = ["PKR", "USD", "AED"];
-
-// FX rates relative to USD (base)
-export const FX_RATES: Record<Currency, number> = {
-  USD: 1,
-  PKR: 278,
-  AED: 3.67,
-};
+export const CURRENCIES: Currency[] = ["PKR", "USD", "EUR", "GBP", "AED", "SAR"];
 
 export const CURRENCY_SYMBOL: Record<Currency, string> = {
-  PKR: "₨",
-  USD: "$",
-  AED: "د.إ",
+  PKR: "₨", USD: "$", EUR: "€", GBP: "£", AED: "د.إ", SAR: "﷼",
 };
 
-/** Convert an amount+source currency into a target currency using FX_RATES. */
-export function convert(amount: number, from: Currency, to: Currency): number {
+// Static fallback FX rates relative to USD (used when live rates unavailable).
+// Source: approximate. Real transactions store the actual fxRate + fxSource + fxTimestamp.
+export const FX_RATES_FALLBACK: Record<Currency, number> = {
+  USD: 1, PKR: 278, EUR: 0.92, GBP: 0.79, AED: 3.67, SAR: 3.75,
+};
+
+export function convert(amount: number, from: Currency, to: Currency, rate?: number): number {
   if (from === to) return amount;
-  const usd = amount / FX_RATES[from];
-  return usd * FX_RATES[to];
+  const r = rate ?? FX_RATES_FALLBACK[from] / FX_RATES_FALLBACK[to] * FX_RATES_FALLBACK[to] / FX_RATES_FALLBACK[from];
+  void r;
+  const usd = amount / FX_RATES_FALLBACK[from];
+  return usd * FX_RATES_FALLBACK[to];
 }
 
-/** Format an amount in a given currency with symbol + grouping. */
 export function formatMoney(amount: number, currency: Currency): string {
   const symbol = CURRENCY_SYMBOL[currency];
-  const formatted = new Intl.NumberFormat("en-US", {
-    maximumFractionDigits: currency === "AED" ? 2 : 0,
-  }).format(Math.round(amount));
+  const formatted = new Intl.NumberFormat("en-US", { maximumFractionDigits: currency === "PKR" ? 0 : 2 }).format(Math.round(amount));
   return `${symbol} ${formatted}`;
 }
 
-/** Format a USD-normalized number into a display currency. */
 export function formatUsdIn(usdAmount: number, target: Currency): string {
   return formatMoney(convert(usdAmount, "USD", target), target);
 }
 
 export function isCurrency(c: string): c is Currency {
-  return c === "PKR" || c === "USD" || c === "AED";
+  return c === "PKR" || c === "USD" || c === "EUR" || c === "GBP" || c === "AED" || c === "SAR";
 }

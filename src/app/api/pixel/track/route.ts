@@ -1,10 +1,44 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { META_PIXEL_ID } from "@/lib/pixel";
+
+// Meta CAPI bridge — receives pixel events from the storefront (browser)
+// and persists them server-side. The real Meta Graph API call can be
+// layered on top by an integration; here we store the event for replay
+// and analytics. No mock events — only what the client sent.
 export async function POST(req: NextRequest) {
-  const b = await req.json();
-  if (!b.eventName) return NextResponse.json({ error: "eventName required" }, { status: 400 });
-  const record = await db.pixelEvent.create({ data: { eventName: b.eventName, eventId: b.eventId ?? null, value: b.value ?? null, currency: b.currency ?? null, source: "server" } });
-  console.log(`[CAPI] ${b.eventName} -> graph.facebook.com/v20.0/${META_PIXEL_ID}/events (eventId=${b.eventId})`);
-  return NextResponse.json({ ok: true, recorded: record.id });
+  try {
+    const body = await req.json();
+
+    if (!body.eventName) {
+      return NextResponse.json(
+        { error: "eventName is required" },
+        { status: 400 }
+      );
+    }
+
+    const evt = await db.pixelEvent.create({
+      data: {
+        eventName: body.eventName,
+        eventId: body.eventId ?? null,
+        value: body.value ?? null,
+        currency: body.currency ?? null,
+        source: body.source ?? "client",
+      },
+    });
+
+    return NextResponse.json(
+      {
+        data: {
+          ok: true,
+          id: evt.id,
+          eventName: evt.eventName,
+          createdAt: evt.createdAt.toISOString(),
+        },
+      },
+      { status: 201 }
+    );
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "Unknown error";
+    return NextResponse.json({ error: msg }, { status: 500 });
+  }
 }

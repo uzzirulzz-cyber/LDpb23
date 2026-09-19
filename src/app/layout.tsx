@@ -4,6 +4,7 @@ import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as SonnerToaster } from "@/components/ui/sonner";
 import { MetaPixel } from "@/components/meta-pixel";
+import { Providers } from "@/components/providers";
 
 const inter = Inter({
   variable: "--font-geist-sans",
@@ -65,10 +66,12 @@ export default function RootLayout({
       <body
         className={`${inter.variable} ${jetMono.variable} antialiased bg-background text-foreground`}
       >
-        {children}
-        <Toaster />
-        <SonnerToaster richColors position="top-right" />
-        <MetaPixel />
+        <Providers>
+          {children}
+          <Toaster />
+          <SonnerToaster richColors position="top-right" />
+          <MetaPixel />
+        </Providers>
       </body>
     </html>
   );

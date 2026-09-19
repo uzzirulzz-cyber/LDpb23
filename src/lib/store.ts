@@ -4,23 +4,12 @@ import { create } from "zustand";
 import type { Currency } from "./currency";
 
 export type SectionId =
-  | "sales-analytics"
-  | "leads"
-  | "contacts"
-  | "quotes"
-  | "workflows"
-  | "waterfall"
-  | "seats"
-  | "outreach"
-  | "crawlers"
-  | "cms"
-  | "homepage"
-  | "traffic"
-  | "orders"
-  | "inventory"
-  | "products";
+  | "dashboard" | "leads" | "contacts" | "accounts"
+  | "funnels" | "api-runs" | "waterfall" | "workflows" | "rules"
+  | "bots" | "inbox" | "customers" | "orders"
+  | "analytics" | "integrations" | "audit" | "settings";
 
-interface DashboardState {
+interface State {
   section: SectionId;
   setSection: (s: SectionId) => void;
   displayCurrency: Currency;
@@ -31,10 +20,10 @@ interface DashboardState {
   triggerRefresh: () => void;
 }
 
-export const useDashboard = create<DashboardState>((set) => ({
-  section: "sales-analytics",
+export const useDashboard = create<State>((set) => ({
+  section: "dashboard",
   setSection: (section) => set({ section }),
-  displayCurrency: "USD",
+  displayCurrency: "PKR",
   setDisplayCurrency: (displayCurrency) => set({ displayCurrency }),
   selectedLeadId: null,
   setSelectedLeadId: (selectedLeadId) => set({ selectedLeadId }),
