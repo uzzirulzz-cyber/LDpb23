@@ -6,7 +6,7 @@ import type { Currency } from "./currency";
 export type SectionId =
   | "dashboard" | "leads" | "contacts" | "accounts"
   | "funnels" | "api-runs" | "waterfall" | "workflows" | "rules"
-  | "bots" | "inbox" | "customers" | "orders" | "notifications"
+  | "bots" | "inbox" | "whatsapp" | "customers" | "orders" | "notifications"
   | "analytics" | "integrations" | "audit" | "settings"
   // OPS — Operations
   | "ops-dashboard" | "ops-fulfillment" | "ops-shipping" | "ops-suppliers"

@@ -1,8 +1,8 @@
 // Meta Pixel (Facebook Pixel) tracking utilities
-// Pixel ID: 1052867624415243
+// Pixel ID: 883094784892280
 // Provides both client-side (fbq) helpers and a server-side Conversions API (CAPI) bridge.
 
-export const META_PIXEL_ID = "1052867624415243";
+export const META_PIXEL_ID = "883094784892280";
 
 declare global {
   interface Window {

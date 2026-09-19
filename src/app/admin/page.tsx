@@ -17,6 +17,7 @@ const WorkflowsSection = dynamic(() => import("@/components/crm/sections/workflo
 const RulesSection = dynamic(() => import("@/components/crm/sections/rules").then((m) => m.RulesSection), { ssr: false });
 const BotsSection = dynamic(() => import("@/components/crm/sections/bots").then((m) => m.BotsSection), { ssr: false });
 const InboxSection = dynamic(() => import("@/components/crm/sections/inbox").then((m) => m.InboxSection), { ssr: false });
+const WhatsAppSection = dynamic(() => import("@/components/crm/sections/whatsapp").then((m) => m.WhatsAppSection), { ssr: false });
 const CustomersSection = dynamic(() => import("@/components/crm/sections/customers").then((m) => m.CustomersSection), { ssr: false });
 const OrdersSection = dynamic(() => import("@/components/crm/sections/orders").then((m) => m.OrdersSection), { ssr: false });
 const NotificationsSection = dynamic(() => import("@/components/crm/sections/notifications").then((m) => m.NotificationsSection), { ssr: false });
@@ -59,6 +60,7 @@ export default function CrmPage() {
             {section === "rules" && <RulesSection />}
             {section === "bots" && <BotsSection />}
             {section === "inbox" && <InboxSection />}
+            {section === "whatsapp" && <WhatsAppSection />}
             {section === "customers" && <CustomersSection />}
             {section === "orders" && <OrdersSection />}
             {section === "notifications" && <NotificationsSection />}

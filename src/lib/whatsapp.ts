@@ -346,3 +346,161 @@ function extractError(parsed: unknown): string | null {
   const err = (parsed as { error?: { message?: string } }).error;
   return err?.message ?? null;
 }
+
+// ─── FREE TEXT MESSAGE ───────────────────────────────────────────
+/**
+ * Send a free-text WhatsApp message (not a template).
+ * Used by the CRM WhatsApp chat interface for custom messages.
+ */
+export async function sendWhatsAppText(
+  to: string,
+  message: string,
+  opts: {
+    orderId?: string;
+    customerId?: string;
+    staffId?: string;
+    botId?: string;
+    actor?: string;
+  } = {}
+): Promise<WhatsAppSendResult> {
+  const actor = opts.actor || "system";
+
+  if (!isWhatsAppConfigured()) {
+    const log = await db.communicationLog.create({
+      data: {
+        orderId: opts.orderId ?? null,
+        customerId: opts.customerId ?? null,
+        channel: "whatsapp",
+        direction: "outbound",
+        recipient: to,
+        message,
+        deliveryStatus: "failed",
+        errorMessage: "WhatsApp integration not configured",
+        botId: opts.botId ?? null,
+        staffId: opts.staffId ?? null,
+      },
+    });
+    return { ok: false, providerMsgId: null, deliveryStatus: "failed", raw: { logId: log.id }, error: "Integration Not Configured" };
+  }
+
+  const recipientPhone = normalizePhone(to);
+  const url = `${WHATSAPP_BASE_URL}/${WHATSAPP_API_VERSION}/${PHONE_NUMBER_ID}/messages`;
+  const requestBody = {
+    messaging_product: "whatsapp",
+    recipient_type: "individual",
+    to: recipientPhone,
+    type: "text",
+    text: { preview_url: true, body: message },
+  };
+
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${ACCESS_TOKEN}`, "Content-Type": "application/json" },
+      body: JSON.stringify(requestBody),
+    });
+
+    const rawText = await res.text();
+    let parsed: unknown = null;
+    try { parsed = JSON.parse(rawText); } catch { parsed = rawText; }
+
+    if (!res.ok) {
+      const errMsg = extractError(parsed) || `HTTP ${res.status}`;
+      await db.communicationLog.create({
+        data: {
+          orderId: opts.orderId ?? null, customerId: opts.customerId ?? null,
+          channel: "whatsapp", direction: "outbound", recipient: to,
+          message, deliveryStatus: "failed", errorMessage: errMsg,
+          botId: opts.botId ?? null, staffId: opts.staffId ?? null,
+        },
+      });
+      return { ok: false, providerMsgId: null, deliveryStatus: "failed", raw: parsed, error: errMsg };
+    }
+
+    const providerMsgId = (parsed as { messages?: Array<{ id?: string }> })?.messages?.[0]?.id ?? null;
+
+    const log = await db.communicationLog.create({
+      data: {
+        orderId: opts.orderId ?? null, customerId: opts.customerId ?? null,
+        channel: "whatsapp", direction: "outbound", recipient: to,
+        message, providerMsgId, deliveryStatus: "sent",
+        botId: opts.botId ?? null, staffId: opts.staffId ?? null,
+      },
+    });
+
+    if (opts.orderId) {
+      await db.orderTimelineEvent.create({
+        data: {
+          orderId: opts.orderId, eventType: "whatsapp_sent",
+          title: "WhatsApp message sent", description: `Sent to ${to}`,
+          actor, metadata: JSON.stringify({ to, providerMsgId, logId: log.id }),
+        },
+      });
+    }
+
+    return { ok: true, providerMsgId, deliveryStatus: "sent", raw: parsed };
+  } catch (err) {
+    const errMsg = err instanceof Error ? err.message : "Network error";
+    await db.communicationLog.create({
+      data: {
+        orderId: opts.orderId ?? null, customerId: opts.customerId ?? null,
+        channel: "whatsapp", direction: "outbound", recipient: to,
+        message, deliveryStatus: "failed", errorMessage: errMsg,
+        botId: opts.botId ?? null, staffId: opts.staffId ?? null,
+      },
+    });
+    return { ok: false, providerMsgId: null, deliveryStatus: "failed", raw: null, error: errMsg };
+  }
+}
+
+// ─── CALLING LINKS ───────────────────────────────────────────────
+/**
+ * Generate WhatsApp call links (wa.me).
+ * Voice call: https://wa.me/{phone} (opens chat, user taps call button)
+ * Video call: same link — WhatsApp determines call type in-app.
+ */
+export function getWhatsAppCallLink(phone: string): string {
+  return `https://wa.me/${normalizePhone(phone)}`;
+}
+
+/**
+ * Generate a WhatsApp click-to-chat link with a pre-filled message.
+ */
+export function getWhatsAppChatLink(phone: string, message?: string): string {
+  const p = normalizePhone(phone);
+  return message
+    ? `https://wa.me/${p}?text=${encodeURIComponent(message)}`
+    : `https://wa.me/${p}`;
+}
+
+// ─── CONTACT MANAGEMENT ──────────────────────────────────────────
+/**
+ * Get or create a WhatsApp contact from a phone number.
+ * Checks existing InboxThread by phone, creates if missing.
+ */
+export async function getOrCreateWhatsAppContact(
+  phone: string,
+  name: string,
+  opts: { leadId?: string; contactId?: string } = {}
+) {
+  const normalizedPhone = normalizePhone(phone);
+  const existing = await db.inboxThread.findFirst({
+    where: { channel: "whatsapp", customerName: name },
+    include: { messages: { orderBy: { createdAt: "desc" }, take: 1 } },
+  });
+
+  if (existing) return existing;
+
+  return db.inboxThread.create({
+    data: {
+      leadId: opts.leadId ?? null,
+      contactId: opts.contactId ?? null,
+      customerName: name,
+      channel: "whatsapp",
+      subject: `WhatsApp: ${name}`,
+      status: "open",
+      lastMessageAt: new Date(),
+    },
+    include: { messages: true },
+  });
+}

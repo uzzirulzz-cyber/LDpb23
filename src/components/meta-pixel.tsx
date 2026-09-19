@@ -6,7 +6,7 @@ import { META_PIXEL_ID, trackPageView } from "@/lib/pixel";
 
 /**
  * Meta (Facebook) Pixel loader + PageView tracker.
- * Pixel ID: 1052867624415243
+ * Pixel ID: 883094784892280
  * The pixel base code is injected via next/script with afterInteractive strategy.
  * A PageView event is fired on mount (deduped with the CAPI bridge via eventID).
  */

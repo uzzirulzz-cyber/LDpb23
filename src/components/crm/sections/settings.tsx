@@ -90,7 +90,7 @@ interface AuditEntry {
 }
 
 // ============================ Constants ============================
-const META_PIXEL_ID = "1052867624415243";
+const META_PIXEL_ID = "883094784892280";
 
 const FIELD_TYPES = ["text", "number", "select", "multiselect", "date", "boolean"];
 const FIELD_ENTITIES = ["lead", "contact", "account"];
