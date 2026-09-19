@@ -66,6 +66,35 @@ export async function GET() {
       customers: customersCount > 0,
     };
 
+    // ============ Production order metrics ============
+    const pendingPayments = orders.filter(
+      (o) => o.paymentStatus === "pending" || o.paymentStatus === "processing"
+    ).filter((o) => o.paymentStatus === "pending").length;
+
+    const paymentsUnderReview = orders.filter(
+      (o) => o.verificationStatus === "pending"
+    ).length;
+
+    const verifiedPayments = orders.filter(
+      (o) => o.verificationStatus === "verified"
+    ).length;
+
+    const failedPayments = orders.filter(
+      (o) =>
+        o.paymentStatus === "payment_failed" ||
+        o.paymentStatus === "failed" ||
+        o.paymentStatus === "rejected" ||
+        o.verificationStatus === "rejected"
+    ).length;
+
+    const processingOrders = orders.filter(
+      (o) => o.status === "order_processing" || o.status === "payment_verified"
+    ).length;
+
+    const completedOrders = orders.filter(
+      (o) => o.status === "order_completed"
+    ).length;
+
     const recentActivities = await db.activity.findMany({
       take: 10,
       orderBy: { createdAt: "desc" },
@@ -96,6 +125,76 @@ export async function GET() {
       latencyMs: b.latencyMs,
     }));
 
+    // Payment verification queue (orders with verificationStatus=pending)
+    const verificationQueue = orders
+      .filter((o) => o.verificationStatus === "pending")
+      .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1))
+      .slice(0, 20)
+      .map((o) => ({
+        id: o.id,
+        orderNumber: o.orderNumber,
+        status: o.status,
+        paymentStatus: o.paymentStatus,
+        verificationStatus: o.verificationStatus,
+        total: o.total,
+        currency: o.currency,
+        createdAt: o.createdAt.toISOString(),
+        customer: { id: "", name: "", email: "" },
+      }));
+
+    // If we have queue items, fetch the related customers in one pass.
+    if (verificationQueue.length > 0) {
+      const queueOrderIds = verificationQueue.map((o) => o.id);
+      const queueOrders = await db.order.findMany({
+        where: { id: { in: queueOrderIds } },
+        select: {
+          id: true,
+          customer: { select: { id: true, name: true, email: true } },
+        },
+      });
+      const cMap = new Map(queueOrders.map((o) => [o.id, o.customer]));
+      for (const o of verificationQueue) {
+        const c = cMap.get(o.id);
+        if (c) o.customer = c;
+      }
+    }
+
+    // Recent unread notifications (3)
+    const recentNotifications = await db.adminNotification.findMany({
+      where: { isRead: false },
+      orderBy: { createdAt: "desc" },
+      take: 3,
+      include: {
+        order: {
+          select: {
+            id: true,
+            orderNumber: true,
+            customer: { select: { id: true, name: true, email: true } },
+          },
+        },
+      },
+    });
+
+    // Real-time activity stream: recent timeline events across all orders
+    const recentTimeline = await db.orderTimelineEvent.findMany({
+      take: 15,
+      orderBy: { createdAt: "desc" },
+      include: {
+        order: {
+          select: { id: true, orderNumber: true, customer: { select: { name: true } } },
+        },
+      },
+    });
+
+    // Customer communications count (all-time)
+    const customerCommunications = await db.communicationLog.count();
+
+    // Bot activity (executions in last 24h)
+    const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const botActivity = await db.botExecution.count({
+      where: { startedAt: { gte: since } },
+    });
+
     return NextResponse.json({
       data: {
         kpis: {
@@ -110,6 +209,15 @@ export async function GET() {
           idleBots,
           funnelsRunning,
           apiRunsToday,
+          // Production order workflow metrics
+          pendingPayments,
+          paymentsUnderReview,
+          verifiedPayments,
+          failedPayments,
+          processingOrders,
+          completedOrders,
+          customerCommunications,
+          botActivity,
         },
         hasData,
         recentActivities: recentActivities.map((a) => ({
@@ -125,6 +233,26 @@ export async function GET() {
           fxTimestamp: o.fxTimestamp?.toISOString() ?? null,
         })),
         botStatuses,
+        verificationQueue,
+        recentNotifications: recentNotifications.map((n) => ({
+          ...n,
+          metadata: n.metadata ? JSON.parse(n.metadata) : {},
+          readAt: n.readAt?.toISOString() ?? null,
+          createdAt: n.createdAt.toISOString(),
+        })),
+        recentTimeline: recentTimeline.map((e) => ({
+          ...e,
+          metadata: e.metadata ? JSON.parse(e.metadata) : {},
+          createdAt: e.createdAt.toISOString(),
+          order: e.order
+            ? {
+                ...e.order,
+                customer: e.order.customer
+                  ? { name: e.order.customer.name }
+                  : null,
+              }
+            : null,
+        })),
       },
     });
   } catch (err) {

@@ -4,14 +4,21 @@ import * as React from "react";
 import { toast } from "sonner";
 import {
   Search,
-  Plus,
   ShoppingCart,
-  DollarSign,
   Clock,
-  RotateCcw,
-  Copy,
-  Trash2,
+  CheckCircle2,
+  XCircle,
+  AlertTriangle,
   Loader2,
+  Bot as BotIcon,
+  UserCog,
+  Mail,
+  MessageCircle,
+  Send,
+  StickyNote,
+  History,
+  ListChecks,
+  Info,
 } from "lucide-react";
 
 import { useDashboardFetch } from "@/hooks/use-dashboard-fetch";
@@ -24,11 +31,13 @@ import {
   EmptyState,
   KpiCard,
 } from "../shared";
-import { timeAgo, formatDate } from "../ui-helpers";
+import { timeAgo, formatDate, MiniAvatar } from "../ui-helpers";
 
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
@@ -46,26 +55,25 @@ import {
   SheetDescription,
 } from "@/components/ui/sheet";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Tabs,
+  TabsList,
+  TabsTrigger,
+  TabsContent,
+} from "@/components/ui/tabs";
 
 // ============================ Types ============================
 interface OrderCustomer {
   id: string;
   name: string;
   email: string;
+  phone?: string | null;
 }
 
 interface OrderListItem {
@@ -76,15 +84,25 @@ interface OrderListItem {
   paymentStatus: string;
   paymentMethod: string | null;
   paymentId: string | null;
+  paymentProvider: string | null;
+  verificationStatus: string;
+  commStatus: string;
+  assignedBotId: string | null;
+  assignedStaffId: string | null;
+  adminNotes: unknown;
+  auditHistory: unknown;
   subtotal: number;
+  discount: number;
+  tax: number;
   total: number;
   currency: string;
   sourceCurrency: string;
   fxRate: number;
   attribution: string | null;
   createdAt: string;
+  updatedAt: string;
   customer: OrderCustomer;
-  items: never[];
+  items: OrderItem[];
 }
 
 interface OrderItem {
@@ -100,75 +118,110 @@ interface OrderItem {
 
 interface OrderDetail extends Omit<OrderListItem, "items"> {
   items: OrderItem[];
+  timeline: TimelineEvent[];
+  communications: CommunicationLog[];
 }
 
-interface Customer {
+interface TimelineEvent {
+  id: string;
+  orderId: string;
+  eventType: string;
+  title: string;
+  description: string;
+  actor: string;
+  metadata: Record<string, unknown>;
+  createdAt: string;
+}
+
+interface CommunicationLog {
+  id: string;
+  orderId: string | null;
+  customerId: string | null;
+  channel: string;
+  direction: string;
+  recipient: string;
+  sender: string | null;
+  subject: string | null;
+  message: string;
+  templateKey: string | null;
+  providerMsgId: string | null;
+  deliveryStatus: string;
+  readStatus: boolean;
+  errorMessage: string | null;
+  botId: string | null;
+  staffId: string | null;
+  createdAt: string;
+}
+
+interface Integration {
+  id: string;
+  name: string;
+  type: string;
+  status: string;
+}
+
+interface StaffMember {
   id: string;
   name: string;
   email: string;
 }
 
-interface StoreProduct {
-  id: string;
-  name: string;
-  slug: string;
-  sku: string;
-  price: number;
-  currency: string;
-  digital: boolean;
-  stock: number;
-}
-
-// ============================ Constants ============================
-const ORDER_STATUS_COLORS: Record<string, string> = {
-  pending:
-    "bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/20",
+// ============================ Status color maps ============================
+// Explicit class strings so Tailwind JIT can statically extract them.
+const PAYMENT_STATUS_COLORS: Record<string, string> = {
+  pending: "bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/20",
+  processing: "bg-blue-500/10 text-blue-700 dark:text-blue-300 border-blue-500/20",
   paid: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20",
-  fulfilled:
-    "bg-blue-500/10 text-blue-700 dark:text-blue-300 border-blue-500/20",
-  cancelled:
-    "bg-rose-500/10 text-rose-700 dark:text-rose-300 border-rose-500/20",
-  refunded:
-    "bg-slate-500/10 text-slate-700 dark:text-slate-300 border-slate-500/20",
+  verified: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20",
+  payment_failed: "bg-rose-500/10 text-rose-700 dark:text-rose-300 border-rose-500/20",
+  failed: "bg-rose-500/10 text-rose-700 dark:text-rose-300 border-rose-500/20",
+  payment_cancelled: "bg-slate-500/10 text-slate-700 dark:text-slate-300 border-slate-500/20",
+  verification_required: "bg-violet-500/10 text-violet-700 dark:text-violet-300 border-violet-500/20",
+  rejected: "bg-rose-500/10 text-rose-700 dark:text-rose-300 border-rose-500/20",
+  refunded: "bg-slate-500/10 text-slate-700 dark:text-slate-300 border-slate-500/20",
 };
 
-const PAYMENT_STATUS_COLORS: Record<string, string> = {
-  unpaid:
-    "bg-slate-500/10 text-slate-700 dark:text-slate-300 border-slate-500/20",
-  paid: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20",
-  failed: "bg-rose-500/10 text-rose-700 dark:text-rose-300 border-rose-500/20",
-  refunded:
-    "bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/20",
+const VERIFICATION_STATUS_COLORS: Record<string, string> = {
+  unverified: "bg-slate-500/10 text-slate-700 dark:text-slate-300 border-slate-500/20",
+  pending: "bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/20",
+  verified: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20",
+  rejected: "bg-rose-500/10 text-rose-700 dark:text-rose-300 border-rose-500/20",
+};
+
+const ORDER_STATUS_COLORS: Record<string, string> = {
+  account_created: "bg-slate-500/10 text-slate-700 dark:text-slate-300 border-slate-500/20",
+  checkout_started: "bg-blue-500/10 text-blue-700 dark:text-blue-300 border-blue-500/20",
+  payment_pending: "bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/20",
+  payment_submitted: "bg-blue-500/10 text-blue-700 dark:text-blue-300 border-blue-500/20",
+  payment_verification: "bg-violet-500/10 text-violet-700 dark:text-violet-300 border-violet-500/20",
+  payment_verified: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20",
+  order_processing: "bg-blue-500/10 text-blue-700 dark:text-blue-300 border-blue-500/20",
+  order_completed: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20",
+  payment_failed: "bg-rose-500/10 text-rose-700 dark:text-rose-300 border-rose-500/20",
+  payment_rejected: "bg-rose-500/10 text-rose-700 dark:text-rose-300 border-rose-500/20",
+  order_cancelled: "bg-rose-500/10 text-rose-700 dark:text-rose-300 border-rose-500/20",
 };
 
 function Pill({
   label,
   colorMap,
+  defaultClass = "bg-slate-500/10 text-slate-700 dark:text-slate-300 border-slate-500/20",
 }: {
   label: string;
   colorMap: Record<string, string>;
+  defaultClass?: string;
 }) {
   return (
     <span
       className={cn(
-        "inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium",
-        colorMap[label] ??
-          "bg-slate-500/10 text-slate-700 dark:text-slate-300 border-slate-500/20"
+        "inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium whitespace-nowrap",
+        colorMap[label] ?? defaultClass
       )}
     >
-      {label}
+      {label || "—"}
     </span>
   );
 }
-
-const PAYMENT_METHODS = [
-  "card",
-  "bank_transfer",
-  "easypaisa",
-  "jazzcash",
-  "cash_on_delivery",
-  "manual",
-];
 
 // ============================ Section ============================
 export function OrdersSection() {
@@ -176,42 +229,48 @@ export function OrdersSection() {
     "/api/crm/orders"
   );
   const triggerRefresh = useDashboard((s) => s.triggerRefresh);
+
   const [search, setSearch] = React.useState("");
   const [statusFilter, setStatusFilter] = React.useState<string>("none");
+  const [paymentFilter, setPaymentFilter] = React.useState<string>("none");
+  const [verificationFilter, setVerificationFilter] = React.useState<string>("none");
   const [selectedId, setSelectedId] = React.useState<string | null>(null);
-  const [newOpen, setNewOpen] = React.useState(false);
 
   const kpis = React.useMemo(() => {
-    if (!orders || orders.length === 0) return null;
-    let paid = 0,
-      pending = 0,
-      refunded = 0,
-      revenue = 0;
-    for (const o of orders) {
-      if (o.status === "refunded" || o.paymentStatus === "refunded") {
-        refunded += 1;
-        continue;
-      }
-      if (o.status === "paid" || o.paymentStatus === "paid") {
-        paid += 1;
-        revenue += o.total;
-      } else {
-        pending += 1;
-      }
-    }
-    return { total: orders.length, paid, pending, refunded, revenue };
+    if (!orders) return null;
+    return {
+      total: orders.length,
+      pendingPayments: orders.filter((o) => o.paymentStatus === "pending").length,
+      underReview: orders.filter((o) => o.verificationStatus === "pending").length,
+      verified: orders.filter((o) => o.verificationStatus === "verified").length,
+      failed: orders.filter(
+        (o) =>
+          o.paymentStatus === "payment_failed" ||
+          o.paymentStatus === "failed" ||
+          o.paymentStatus === "rejected" ||
+          o.verificationStatus === "rejected"
+      ).length,
+      processing: orders.filter(
+        (o) => o.status === "order_processing" || o.status === "payment_verified"
+      ).length,
+      completed: orders.filter((o) => o.status === "order_completed").length,
+    };
   }, [orders]);
 
   const filtered = React.useMemo(() => {
     if (!orders) return [];
     return orders.filter((o) => {
       if (statusFilter !== "none" && o.status !== statusFilter) return false;
+      if (paymentFilter !== "none" && o.paymentStatus !== paymentFilter) return false;
+      if (verificationFilter !== "none" && o.verificationStatus !== verificationFilter)
+        return false;
       if (search.trim()) {
         const q = search.trim().toLowerCase();
         const hay = [
           o.orderNumber,
           o.customer?.name ?? "",
           o.customer?.email ?? "",
+          o.customer?.phone ?? "",
         ]
           .join(" ")
           .toLowerCase();
@@ -219,153 +278,219 @@ export function OrdersSection() {
       }
       return true;
     });
-  }, [orders, statusFilter, search]);
+  }, [orders, statusFilter, paymentFilter, verificationFilter, search]);
 
   return (
     <div className="space-y-4">
       <SectionHeader
         title="Orders"
-        description="All orders placed via storefront checkout. Manual orders can be created for back-office sales."
-        action={
-          <Button onClick={() => setNewOpen(true)}>
-            <Plus className="h-4 w-4 mr-1" /> New Order
-          </Button>
-        }
+        description="Full order lifecycle: account creation → checkout → payment → verification → processing → completion. Click any row to open the workflow drawer."
       />
 
-      <div className="grid gap-3 md:grid-cols-5">
-        <KpiCard
-          label="Total Orders"
-          value={kpis?.total ?? 0}
-          icon={ShoppingCart}
-          tone="blue"
-          noData={!kpis}
-        />
-        <KpiCard
-          label="Paid"
-          value={kpis?.paid ?? 0}
-          icon={DollarSign}
-          tone="emerald"
-          noData={!kpis}
-        />
-        <KpiCard
-          label="Pending"
-          value={kpis?.pending ?? 0}
-          icon={Clock}
-          tone="amber"
-          noData={!kpis}
-        />
-        <KpiCard
-          label="Refunded"
-          value={kpis?.refunded ?? 0}
-          icon={RotateCcw}
-          tone="slate"
-          noData={!kpis}
-        />
-        <KpiCard
-          label="Revenue (PKR)"
-          value={kpis ? formatMoney(kpis.revenue, "PKR") : "—"}
-          icon={DollarSign}
-          tone="violet"
-          noData={!kpis}
-        />
-      </div>
+      {/* KPIs */}
+      {loading ? (
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {Array.from({ length: 7 }).map((_, i) => (
+            <Skeleton key={i} className="h-24 rounded-lg" />
+          ))}
+        </div>
+      ) : kpis ? (
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <KpiCard label="Total Orders" value={kpis.total} icon={ShoppingCart} tone="blue" noData={kpis.total === 0} />
+          <KpiCard label="Pending Payments" value={kpis.pendingPayments} icon={Clock} tone="amber" noData={kpis.total === 0} />
+          <KpiCard label="Under Review" value={kpis.underReview} icon={AlertTriangle} tone="violet" noData={kpis.total === 0} />
+          <KpiCard label="Verified Payments" value={kpis.verified} icon={CheckCircle2} tone="emerald" noData={kpis.total === 0} />
+          <KpiCard label="Failed / Rejected" value={kpis.failed} icon={XCircle} tone="rose" noData={kpis.total === 0} />
+          <KpiCard label="Processing" value={kpis.processing} icon={Loader2} tone="cyan" noData={kpis.total === 0} />
+          <KpiCard label="Completed" value={kpis.completed} icon={CheckCircle2} tone="emerald" noData={kpis.total === 0} />
+        </div>
+      ) : null}
 
-      <div className="flex flex-col sm:flex-row gap-2">
-        <div className="relative flex-1">
+      {/* Filters */}
+      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="relative lg:col-span-2">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search order number or customer..."
+            placeholder="Search order #, customer email or phone..."
             className="pl-9"
           />
         </div>
         <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="sm:w-[180px] w-full">
-            <SelectValue placeholder="All statuses" />
+          <SelectTrigger>
+            <SelectValue placeholder="Order status" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="none">All statuses</SelectItem>
-            <SelectItem value="pending">Pending</SelectItem>
-            <SelectItem value="paid">Paid</SelectItem>
-            <SelectItem value="fulfilled">Fulfilled</SelectItem>
-            <SelectItem value="cancelled">Cancelled</SelectItem>
-            <SelectItem value="refunded">Refunded</SelectItem>
+            <SelectItem value="none">All order statuses</SelectItem>
+            <SelectItem value="account_created">account_created</SelectItem>
+            <SelectItem value="checkout_started">checkout_started</SelectItem>
+            <SelectItem value="payment_pending">payment_pending</SelectItem>
+            <SelectItem value="payment_submitted">payment_submitted</SelectItem>
+            <SelectItem value="payment_verification">payment_verification</SelectItem>
+            <SelectItem value="payment_verified">payment_verified</SelectItem>
+            <SelectItem value="order_processing">order_processing</SelectItem>
+            <SelectItem value="order_completed">order_completed</SelectItem>
+            <SelectItem value="payment_failed">payment_failed</SelectItem>
+            <SelectItem value="payment_rejected">payment_rejected</SelectItem>
+            <SelectItem value="order_cancelled">order_cancelled</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={paymentFilter} onValueChange={setPaymentFilter}>
+          <SelectTrigger>
+            <SelectValue placeholder="Payment status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="none">All payment statuses</SelectItem>
+            <SelectItem value="pending">pending</SelectItem>
+            <SelectItem value="processing">processing</SelectItem>
+            <SelectItem value="paid">paid</SelectItem>
+            <SelectItem value="verified">verified</SelectItem>
+            <SelectItem value="verification_required">verification_required</SelectItem>
+            <SelectItem value="payment_failed">payment_failed</SelectItem>
+            <SelectItem value="rejected">rejected</SelectItem>
+            <SelectItem value="refunded">refunded</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={verificationFilter} onValueChange={setVerificationFilter}>
+          <SelectTrigger>
+            <SelectValue placeholder="Verification" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="none">All verifications</SelectItem>
+            <SelectItem value="unverified">unverified</SelectItem>
+            <SelectItem value="pending">pending</SelectItem>
+            <SelectItem value="verified">verified</SelectItem>
+            <SelectItem value="rejected">rejected</SelectItem>
           </SelectContent>
         </Select>
       </div>
 
+      {/* Table */}
       {error ? (
         <div className="rounded-md border border-rose-500/30 bg-rose-500/5 p-4 text-sm text-rose-700 dark:text-rose-300">
           Error loading orders: {error}
         </div>
       ) : loading ? (
-        <Skeleton className="h-64 w-full rounded-xl" />
+        <Skeleton className="h-72 w-full rounded-xl" />
       ) : filtered.length === 0 ? (
         <EmptyState
           icon={ShoppingCart}
-          title="No orders yet"
-          description="Orders are created via storefront checkout. Manual back-office orders can be added via the New Order button."
+          title="No orders"
+          description={
+            orders && orders.length > 0
+              ? "No orders match the current filters."
+              : "Orders appear here when customers check out via the storefront. Honest empty state — no mock data."
+          }
         />
       ) : (
         <div className="glass rounded-xl border overflow-hidden">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Order #</TableHead>
-                <TableHead>Customer</TableHead>
-                <TableHead className="text-right">Items</TableHead>
-                <TableHead className="text-right">Total</TableHead>
-                <TableHead>Payment</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Method</TableHead>
-                <TableHead>Placed</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filtered.map((o) => (
-                <TableRow
-                  key={o.id}
-                  className="cursor-pointer hover:bg-muted/40"
-                  onClick={() => setSelectedId(o.id)}
-                >
-                  <TableCell className="font-mono text-xs">
-                    {o.orderNumber}
-                  </TableCell>
-                  <TableCell>
-                    <div className="font-medium text-sm">
-                      {o.customer?.name ?? "—"}
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      {o.customer?.email ?? ""}
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-right text-muted-foreground text-xs">
-                    —
-                  </TableCell>
-                  <TableCell className="text-right tabular-nums font-medium">
-                    {formatMoney(o.total, "PKR")}
-                  </TableCell>
-                  <TableCell>
-                    <Pill
-                      label={o.paymentStatus}
-                      colorMap={PAYMENT_STATUS_COLORS}
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <Pill label={o.status} colorMap={ORDER_STATUS_COLORS} />
-                  </TableCell>
-                  <TableCell className="text-muted-foreground text-sm">
-                    {o.paymentMethod ?? "—"}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground text-sm">
-                    {timeAgo(o.createdAt)}
-                  </TableCell>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Order #</TableHead>
+                  <TableHead>Customer</TableHead>
+                  <TableHead className="text-right">Items</TableHead>
+                  <TableHead>Payment</TableHead>
+                  <TableHead>Verification</TableHead>
+                  <TableHead>Order Status</TableHead>
+                  <TableHead>Assigned</TableHead>
+                  <TableHead className="text-right">Total</TableHead>
+                  <TableHead>Created</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {filtered.map((o) => {
+                  const cur = (o.currency as Currency) ?? "PKR";
+                  return (
+                    <TableRow
+                      key={o.id}
+                      className="cursor-pointer hover:bg-muted/40"
+                      onClick={() => setSelectedId(o.id)}
+                    >
+                      <TableCell className="font-mono text-xs">
+                        {o.orderNumber}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <MiniAvatar name={o.customer?.name ?? "?"} size={28} />
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium truncate">
+                              {o.customer?.name ?? "—"}
+                            </p>
+                            <p className="text-xs text-muted-foreground truncate">
+                              {o.customer?.email ?? "—"}
+                            </p>
+                            {o.customer?.phone ? (
+                              <p className="text-[10px] text-muted-foreground truncate">
+                                {o.customer.phone}
+                              </p>
+                            ) : null}
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums text-xs text-muted-foreground">
+                        {o.items?.length ?? 0}
+                      </TableCell>
+                      <TableCell>
+                        <Pill label={o.paymentStatus} colorMap={PAYMENT_STATUS_COLORS} />
+                      </TableCell>
+                      <TableCell>
+                        <Pill
+                          label={o.verificationStatus}
+                          colorMap={VERIFICATION_STATUS_COLORS}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Pill label={o.status} colorMap={ORDER_STATUS_COLORS} />
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                          {o.assignedBotId ? (
+                            <>
+                              <BotIcon className="h-3 w-3" />
+                              <span className="font-mono truncate max-w-[80px]">
+                                bot
+                              </span>
+                            </>
+                          ) : o.assignedStaffId ? (
+                            <>
+                              <UserCog className="h-3 w-3" />
+                              <span className="font-mono truncate max-w-[80px]">
+                                staff
+                              </span>
+                            </>
+                          ) : (
+                            <span className="italic">Unassigned</span>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums font-medium">
+                        {formatMoney(o.total, cur)}
+                      </TableCell>
+                      <TableCell className="text-xs text-muted-foreground">
+                        {timeAgo(o.createdAt)}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedId(o.id);
+                          }}
+                        >
+                          View
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
         </div>
       )}
 
@@ -373,16 +498,11 @@ export function OrdersSection() {
         orderId={selectedId}
         onClose={() => setSelectedId(null)}
       />
-
-      <NewOrderDialog
-        open={newOpen}
-        onOpenChange={setNewOpen}
-        onCreated={() => triggerRefresh()}
-      />
     </div>
   );
 }
 
+// ============================ Detail sheet with tabs ============================
 function OrderDetailSheet({
   orderId,
   onClose,
@@ -400,11 +520,14 @@ function OrderDetailSheet({
 
   return (
     <Sheet open={open} onOpenChange={(o) => !o && onClose()}>
-      <SheetContent className="sm:max-w-lg overflow-y-auto">
+      <SheetContent className="sm:max-w-2xl overflow-y-auto">
         <SheetHeader>
-          <SheetTitle>Order detail</SheetTitle>
+          <SheetTitle>
+            {order ? `Order ${order.orderNumber}` : "Order detail"}
+          </SheetTitle>
           <SheetDescription>
-            Full order: customer, line items, license keys, payment.
+            Full lifecycle: overview, timeline, communications, and admin
+            actions.
           </SheetDescription>
         </SheetHeader>
         {!orderId ? null : loading ? (
@@ -417,125 +540,40 @@ function OrderDetailSheet({
             {error || "Order not found"}
           </p>
         ) : (
-          <div className="p-4 space-y-5">
-            <div className="space-y-1">
-              <div className="flex items-center justify-between">
-                <span className="font-mono text-sm">{order.orderNumber}</span>
-                <span className="text-xs text-muted-foreground">
-                  {formatDate(order.createdAt)}
-                </span>
-              </div>
-              <div className="flex items-center gap-2 pt-1">
-                <Pill
-                  label={order.status}
-                  colorMap={ORDER_STATUS_COLORS}
-                />
-                <Pill
-                  label={order.paymentStatus}
-                  colorMap={PAYMENT_STATUS_COLORS}
-                />
-              </div>
-            </div>
+          <div className="p-4">
+            <Tabs defaultValue="overview">
+              <TabsList className="w-full">
+                <TabsTrigger value="overview" className="flex-1">
+                  <Info className="h-3.5 w-3.5" />
+                  Overview
+                </TabsTrigger>
+                <TabsTrigger value="timeline" className="flex-1">
+                  <History className="h-3.5 w-3.5" />
+                  Timeline
+                </TabsTrigger>
+                <TabsTrigger value="comms" className="flex-1">
+                  <MessageCircle className="h-3.5 w-3.5" />
+                  Comms
+                </TabsTrigger>
+                <TabsTrigger value="actions" className="flex-1">
+                  <ListChecks className="h-3.5 w-3.5" />
+                  Actions
+                </TabsTrigger>
+              </TabsList>
 
-            <div>
-              <h4 className="text-xs uppercase tracking-wide text-muted-foreground mb-2">
-                Customer
-              </h4>
-              <div className="rounded-lg border p-3 text-sm space-y-1">
-                <div className="font-medium">{order.customer?.name ?? "—"}</div>
-                <div className="text-muted-foreground">
-                  {order.customer?.email ?? "—"}
-                </div>
-              </div>
-            </div>
-
-            <div>
-              <h4 className="text-xs uppercase tracking-wide text-muted-foreground mb-2">
-                Line items ({order.items.length})
-              </h4>
-              {order.items.length === 0 ? (
-                <p className="text-sm text-muted-foreground italic">
-                  No line items recorded.
-                </p>
-              ) : (
-                <ul className="space-y-2">
-                  {order.items.map((it) => (
-                    <li key={it.id} className="rounded-lg border p-3 space-y-2">
-                      <div className="flex justify-between gap-2">
-                        <div className="min-w-0">
-                          <p className="font-medium text-sm truncate">
-                            {it.name}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {it.deliveryType} · qty {it.quantity}
-                          </p>
-                        </div>
-                        <span className="text-sm tabular-nums font-medium shrink-0">
-                          {formatMoney(it.price * it.quantity, "PKR")}
-                        </span>
-                      </div>
-                      {it.licenseKeys && it.licenseKeys.length > 0 ? (
-                        <div className="space-y-1">
-                          <p className="text-xs text-muted-foreground">
-                            License keys
-                          </p>
-                          <div className="flex flex-wrap gap-1.5">
-                            {it.licenseKeys.map((k, i) => (
-                              <LicenseKeyChip key={`${k}-${i}`} value={k} />
-                            ))}
-                          </div>
-                        </div>
-                      ) : null}
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-
-            <div className="rounded-lg border p-3 space-y-1 text-sm">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Subtotal</span>
-                <span className="tabular-nums">
-                  {formatMoney(order.subtotal, "PKR")}
-                </span>
-              </div>
-              <div className="flex justify-between font-semibold pt-1 border-t">
-                <span>Total</span>
-                <span className="tabular-nums">
-                  {formatMoney(order.total, "PKR")}
-                </span>
-              </div>
-              {order.sourceCurrency && order.sourceCurrency !== "PKR" ? (
-                <p className="text-xs text-muted-foreground pt-1">
-                  Source: {order.sourceCurrency} @ FX {order.fxRate}
-                </p>
-              ) : null}
-            </div>
-
-            <div className="grid grid-cols-2 gap-3 text-sm">
-              <div>
-                <p className="text-xs uppercase tracking-wide text-muted-foreground">
-                  Payment method
-                </p>
-                <p className="mt-0.5">{order.paymentMethod ?? "—"}</p>
-              </div>
-              <div>
-                <p className="text-xs uppercase tracking-wide text-muted-foreground">
-                  Payment ID
-                </p>
-                <p className="mt-0.5 font-mono text-xs break-all">
-                  {order.paymentId ?? "—"}
-                </p>
-              </div>
-              <div className="col-span-2">
-                <p className="text-xs uppercase tracking-wide text-muted-foreground">
-                  Attribution
-                </p>
-                <p className="mt-0.5 text-xs">
-                  {order.attribution ?? "—"}
-                </p>
-              </div>
-            </div>
+              <TabsContent value="overview" className="mt-4">
+                <OverviewTab order={order} />
+              </TabsContent>
+              <TabsContent value="timeline" className="mt-4">
+                <TimelineTab orderId={order.id} />
+              </TabsContent>
+              <TabsContent value="comms" className="mt-4">
+                <CommunicationsTab order={order} />
+              </TabsContent>
+              <TabsContent value="actions" className="mt-4">
+                <ActionsTab order={order} />
+              </TabsContent>
+            </Tabs>
           </div>
         )}
       </SheetContent>
@@ -543,372 +581,756 @@ function OrderDetailSheet({
   );
 }
 
-function LicenseKeyChip({ value }: { value: string }) {
-  const [copied, setCopied] = React.useState(false);
-  const copy = async () => {
-    try {
-      await navigator.clipboard.writeText(value);
-      setCopied(true);
-      toast.success("License key copied");
-      setTimeout(() => setCopied(false), 1500);
-    } catch {
-      toast.error("Copy failed");
-    }
-  };
-  return (
-    <button
-      type="button"
-      onClick={copy}
-      className="inline-flex items-center gap-1.5 rounded-md border border-primary/30 bg-primary/5 px-2 py-1 font-mono text-[11px] hover:bg-primary/10 transition-colors"
-      title="Click to copy"
-    >
-      <span>{value}</span>
-      <Copy className="h-3 w-3 text-muted-foreground" />
-      {copied ? (
-        <span className="text-emerald-600 dark:text-emerald-400">copied</span>
-      ) : null}
-    </button>
-  );
-}
-
-// ============================ New Order Dialog ============================
-function NewOrderDialog({
-  open,
-  onOpenChange,
-  onCreated,
-}: {
-  open: boolean;
-  onOpenChange: (o: boolean) => void;
-  onCreated: () => void;
-}) {
-  const { data: customers } = useDashboardFetch<Customer[]>("/api/crm/customers");
-  const { data: productsData } = useDashboardFetch<{ data: StoreProduct[] } | StoreProduct[]>(
-    "/api/store/products?limit=500"
-  );
-
-  const products = React.useMemo<StoreProduct[]>(() => {
-    if (!productsData) return [];
-    if (Array.isArray(productsData)) return productsData;
-    return productsData.data ?? [];
-  }, [productsData]);
-
-  const [customerMode, setCustomerMode] = React.useState<"existing" | "new">(
-    "existing"
-  );
-  const [customerId, setCustomerId] = React.useState<string>("none");
-  const [newCust, setNewCust] = React.useState({
-    name: "",
-    email: "",
-    phone: "",
-    country: "",
-    city: "",
-  });
-  const [items, setItems] = React.useState<
-    { productId: string; quantity: number }[]
-  >([]);
-  const [productId, setProductId] = React.useState<string>("none");
-  const [qty, setQty] = React.useState(1);
-  const [paymentMethod, setPaymentMethod] = React.useState<string>("manual");
+// ============================ Overview tab ============================
+function OverviewTab({ order }: { order: OrderDetail }) {
+  const cur = (order.currency as Currency) ?? "PKR";
+  const sourceCur = (order.sourceCurrency as Currency) ?? "PKR";
+  const triggerRefresh = useDashboard((s) => s.triggerRefresh);
+  const [note, setNote] = React.useState("");
   const [saving, setSaving] = React.useState(false);
 
-  const reset = () => {
-    setCustomerMode("existing");
-    setCustomerId("none");
-    setNewCust({ name: "", email: "", phone: "", country: "", city: "" });
-    setItems([]);
-    setProductId("none");
-    setQty(1);
-    setPaymentMethod("manual");
-  };
+  let notes: Array<{ id?: string; text: string; adminUserId?: string | null; createdAt?: string; at?: string; by?: string }> = [];
+  try {
+    const parsed = order.adminNotes as unknown;
+    if (Array.isArray(parsed)) {
+      notes = parsed as Array<{ id?: string; text: string; adminUserId?: string | null; createdAt?: string; at?: string; by?: string }>;
+    } else if (typeof parsed === "string") {
+      const inner = JSON.parse(parsed);
+      if (Array.isArray(inner)) notes = inner;
+    }
+  } catch {
+    notes = [];
+  }
 
-  const addItem = () => {
-    if (productId === "none") {
-      toast.error("Select a product first");
-      return;
-    }
-    if (items.find((i) => i.productId === productId)) {
-      toast.error("Product already added — increase quantity instead");
-      return;
-    }
-    setItems([...items, { productId, quantity: Math.max(1, qty) }]);
-    setProductId("none");
-    setQty(1);
-  };
-
-  const removeItem = (pid: string) => {
-    setItems(items.filter((i) => i.productId !== pid));
-  };
-
-  const submit = async () => {
-    if (customerMode === "existing" && customerId === "none") {
-      toast.error("Select a customer");
-      return;
-    }
-    if (customerMode === "new" && (!newCust.name.trim() || !newCust.email.trim())) {
-      toast.error("Customer name and email are required");
-      return;
-    }
-    if (items.length === 0) {
-      toast.error("Add at least one line item");
-      return;
-    }
+  const addNote = async () => {
+    if (!note.trim()) return;
     setSaving(true);
     try {
-      // 1. Resolve customer
-      let custId = customerId;
-      if (customerMode === "new") {
-        const cRes = await fetch("/api/crm/customers", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            name: newCust.name.trim(),
-            email: newCust.email.trim(),
-            phone: newCust.phone.trim() || null,
-            country: newCust.country.trim() || null,
-            city: newCust.city.trim() || null,
-          }),
-        });
-        if (!cRes.ok) throw new Error("Customer creation failed");
-        const cJson = await cRes.json();
-        custId = cJson.data.id;
-      }
-
-      // 2. Add items to cart (one POST per item; cart API upserts quantity)
-      for (const it of items) {
-        const r = await fetch("/api/store/cart", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            customerId: custId,
-            productId: it.productId,
-            quantity: it.quantity,
-          }),
-        });
-        if (!r.ok) throw new Error("Failed to add item to cart");
-      }
-
-      // 3. Checkout
-      const ckRes = await fetch("/api/store/checkout", {
-        method: "POST",
+      const res = await fetch(`/api/crm/orders/${order.id}`, {
+        method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          customerId: custId,
-          paymentMethod,
-        }),
+        body: JSON.stringify({ action: "note", note: note.trim(), adminUserId: "admin" }),
       });
-      if (!ckRes.ok) {
-        const j = await ckRes.json().catch(() => ({}));
-        throw new Error(j.error || `Checkout failed: ${ckRes.status}`);
-      }
-      const ckJson = await ckRes.json();
-      toast.success(
-        `Order ${ckJson.data?.orderNumber ?? "created"} placed`
-      );
-      reset();
-      onOpenChange(false);
-      onCreated();
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Failed");
+      toast.success("Note added");
+      setNote("");
+      triggerRefresh();
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Unknown error");
+      toast.error(e instanceof Error ? e.message : "Failed to add note");
     } finally {
       setSaving(false);
     }
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl">
-        <DialogHeader>
-          <DialogTitle>New order</DialogTitle>
-          <DialogDescription>
-            Manual back-office order. Uses storefront checkout flow — creates a
-            cart for the customer, then triggers checkout.
-          </DialogDescription>
-        </DialogHeader>
+    <div className="space-y-4">
+      <div className="rounded-lg border p-3 space-y-3">
+        <div className="grid grid-cols-2 gap-3 text-sm">
+          <Field label="Order Number">
+            <span className="font-mono text-xs">{order.orderNumber}</span>
+          </Field>
+          <Field label="Created">
+            <span>{formatDate(order.createdAt)}</span>
+          </Field>
+          <Field label="Payment Method">
+            <span>{order.paymentMethod ?? "—"}</span>
+          </Field>
+          <Field label="Payment Provider">
+            <span>{order.paymentProvider ?? "—"}</span>
+          </Field>
+          <Field label="Payment ID">
+            <span className="font-mono text-xs">{order.paymentId ?? "—"}</span>
+          </Field>
+          <Field label="Attribution">
+            <span>{order.attribution ?? "—"}</span>
+          </Field>
+        </div>
+      </div>
 
-        <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-1">
-          {/* Customer */}
-          <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <Button
-                type="button"
-                size="sm"
-                variant={customerMode === "existing" ? "default" : "outline"}
-                onClick={() => setCustomerMode("existing")}
+      <div className="rounded-lg border p-3 space-y-2">
+        <p className="text-xs uppercase tracking-wide text-muted-foreground">
+          Status flags
+        </p>
+        <div className="flex flex-wrap items-center gap-2">
+          <Pill label={order.status} colorMap={ORDER_STATUS_COLORS} />
+          <Pill label={order.paymentStatus} colorMap={PAYMENT_STATUS_COLORS} />
+          <Pill
+            label={order.verificationStatus}
+            colorMap={VERIFICATION_STATUS_COLORS}
+          />
+          <Badge variant="outline" className="text-[10px]">
+            comm: {order.commStatus}
+          </Badge>
+        </div>
+      </div>
+
+      <div className="rounded-lg border p-3 space-y-2">
+        <p className="text-xs uppercase tracking-wide text-muted-foreground">
+          Items ({order.items.length})
+        </p>
+        {order.items.length === 0 ? (
+          <p className="text-sm text-muted-foreground italic">
+            No line items recorded for this order.
+          </p>
+        ) : (
+          <ul className="space-y-1.5">
+            {order.items.map((it) => (
+              <li
+                key={it.id}
+                className="flex justify-between gap-2 text-sm border-b pb-1.5 last:border-0 last:pb-0"
               >
-                Existing customer
-              </Button>
-              <Button
-                type="button"
-                size="sm"
-                variant={customerMode === "new" ? "default" : "outline"}
-                onClick={() => setCustomerMode("new")}
-              >
-                New customer
-              </Button>
-            </div>
-            {customerMode === "existing" ? (
-              <Select value={customerId} onValueChange={setCustomerId}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select customer" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Select…</SelectItem>
-                  {(customers ?? []).map((c) => (
-                    <SelectItem key={c.id} value={c.id}>
-                      {c.name} — {c.email}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            ) : (
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <Label>Name *</Label>
-                  <Input
-                    value={newCust.name}
-                    onChange={(e) =>
-                      setNewCust({ ...newCust, name: e.target.value })
-                    }
-                  />
+                <div className="min-w-0">
+                  <p className="truncate font-medium">{it.name}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {it.deliveryType} · qty {it.quantity}
+                    {it.licenseKeys.length > 0
+                      ? ` · ${it.licenseKeys.length} key${
+                          it.licenseKeys.length === 1 ? "" : "s"
+                        }`
+                      : ""}
+                  </p>
                 </div>
-                <div className="space-y-1.5">
-                  <Label>Email *</Label>
-                  <Input
-                    type="email"
-                    value={newCust.email}
-                    onChange={(e) =>
-                      setNewCust({ ...newCust, email: e.target.value })
-                    }
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label>Phone</Label>
-                  <Input
-                    value={newCust.phone}
-                    onChange={(e) =>
-                      setNewCust({ ...newCust, phone: e.target.value })
-                    }
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label>Country</Label>
-                  <Input
-                    value={newCust.country}
-                    onChange={(e) =>
-                      setNewCust({ ...newCust, country: e.target.value })
-                    }
-                  />
-                </div>
-              </div>
-            )}
+                <span className="tabular-nums shrink-0">
+                  {formatMoney(it.price * it.quantity, "PKR")}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+        <div className="border-t pt-2 space-y-1 text-sm">
+          <Row label="Subtotal" value={formatMoney(order.subtotal, cur)} />
+          <Row label="Discount" value={`- ${formatMoney(order.discount, cur)}`} />
+          <Row label="Tax" value={formatMoney(order.tax, cur)} />
+          <div className="flex justify-between font-semibold pt-1 border-t mt-1">
+            <span>Total</span>
+            <span className="tabular-nums">{formatMoney(order.total, cur)}</span>
           </div>
+          {sourceCur !== cur ? (
+            <p className="text-xs text-muted-foreground pt-1">
+              Source: {formatMoney(order.total / Math.max(order.fxRate, 1), sourceCur)} ·
+              FX {order.fxRate} ({sourceCur}→{cur})
+            </p>
+          ) : null}
+        </div>
+      </div>
 
-          {/* Line items */}
-          <div className="space-y-2">
-            <Label>Line items</Label>
-            <div className="flex items-end gap-2">
-              <div className="flex-1">
-                <Select value={productId} onValueChange={setProductId}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select product" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">Select…</SelectItem>
-                    {products.map((p) => (
-                      <SelectItem key={p.id} value={p.id}>
-                        {p.name} — {formatMoney(p.price, (p.currency as Currency) ?? "PKR")}{" "}
-                        (stock {p.stock})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <Input
-                type="number"
-                min={1}
-                value={qty}
-                onChange={(e) => setQty(Math.max(1, Number(e.target.value)))}
-                className="w-20"
-              />
-              <Button type="button" size="sm" onClick={addItem}>
-                <Plus className="h-4 w-4" />
-              </Button>
-            </div>
-            {items.length === 0 ? (
-              <p className="text-xs text-muted-foreground italic">
-                No items added yet.
-              </p>
+      <div className="rounded-lg border p-3 space-y-2">
+        <p className="text-xs uppercase tracking-wide text-muted-foreground">
+          Assignment
+        </p>
+        <div className="grid grid-cols-2 gap-3 text-sm">
+          <Field label="Assigned Bot">
+            <span className="font-mono text-xs">
+              {order.assignedBotId ?? "—"}
+            </span>
+          </Field>
+          <Field label="Assigned Staff">
+            <span className="font-mono text-xs">
+              {order.assignedStaffId ?? "—"}
+            </span>
+          </Field>
+        </div>
+      </div>
+
+      <div className="rounded-lg border p-3 space-y-2">
+        <p className="text-xs uppercase tracking-wide text-muted-foreground flex items-center gap-1.5">
+          <StickyNote className="h-3.5 w-3.5" /> Admin notes ({notes.length})
+        </p>
+        {notes.length === 0 ? (
+          <p className="text-sm text-muted-foreground italic">No notes yet.</p>
+        ) : (
+          <ul className="space-y-1.5">
+            {notes.map((n, i) => {
+              const ts = n.createdAt ?? n.at;
+              const author = n.adminUserId ?? n.by ?? "system";
+              return (
+                <li key={n.id ?? i} className="rounded border bg-muted/30 p-2 text-sm">
+                  <div className="flex justify-between text-[10px] text-muted-foreground">
+                    <span>{author}</span>
+                    <span>
+                      {ts
+                        ? formatDate(ts, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })
+                        : "—"}
+                    </span>
+                  </div>
+                  <p className="mt-0.5 whitespace-pre-wrap">{n.text}</p>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+        <div className="space-y-2 pt-1">
+          <Textarea
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            placeholder="Add an internal note (visible only to admins)..."
+            rows={2}
+          />
+          <Button
+            size="sm"
+            onClick={addNote}
+            disabled={saving || !note.trim()}
+          >
+            {saving ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
             ) : (
-              <ul className="space-y-1">
-                {items.map((it) => {
-                  const p = products.find((x) => x.id === it.productId);
-                  return (
-                    <li
-                      key={it.productId}
-                      className="flex items-center justify-between rounded-md border p-2 text-sm"
-                    >
-                      <div className="min-w-0">
-                        <p className="truncate font-medium">{p?.name ?? it.productId}</p>
-                        <p className="text-xs text-muted-foreground">
-                          qty {it.quantity}
-                          {p
-                            ? ` · ${formatMoney(p.price * it.quantity, "PKR")}`
-                            : ""}
-                        </p>
-                      </div>
-                      <Button
-                        type="button"
-                        size="icon"
-                        variant="ghost"
-                        onClick={() => removeItem(it.productId)}
-                      >
-                        <Trash2 className="h-4 w-4 text-rose-500" />
-                      </Button>
-                    </li>
-                  );
-                })}
-              </ul>
+              <StickyNote className="h-3.5 w-3.5" />
             )}
-          </div>
+            Add note
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
-          {/* Payment */}
-          <div className="space-y-1.5">
-            <Label>Payment method</Label>
-            <Select value={paymentMethod} onValueChange={setPaymentMethod}>
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Select method" />
+function Row({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex justify-between">
+      <span className="text-muted-foreground">{label}</span>
+      <span className="tabular-nums">{value}</span>
+    </div>
+  );
+}
+
+function Field({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div>
+      <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
+        {label}
+      </p>
+      <div className="mt-0.5">{children}</div>
+    </div>
+  );
+}
+
+// ============================ Timeline tab ============================
+const TIMELINE_ICON: Record<string, typeof History> = {
+  order_created: ShoppingCart,
+  payment_submitted: Send,
+  payment_verification_started: AlertTriangle,
+  super_admin_notified: Bell,
+  whatsapp_sent: MessageCircle,
+  email_sent: Mail,
+  payment_verified: CheckCircle2,
+  order_processing: Loader2,
+  order_completed: CheckCircle2,
+  payment_failed: XCircle,
+  payment_rejected: XCircle,
+  status_changed: History,
+  note_added: StickyNote,
+  bot_action: BotIcon,
+  human_action: UserCog,
+};
+
+function TimelineTab({ orderId }: { orderId: string }) {
+  const { data, loading, error } = useDashboardFetch<TimelineEvent[]>(
+    `/api/crm/orders/${orderId}/timeline`
+  );
+  const events = data ?? [];
+
+  if (loading) return <Skeleton className="h-40 w-full rounded-lg" />;
+  if (error)
+    return (
+      <div className="rounded-md border border-rose-500/30 bg-rose-500/5 p-3 text-sm text-rose-700 dark:text-rose-300">
+        Error loading timeline: {error}
+      </div>
+    );
+  if (events.length === 0)
+    return (
+      <EmptyState
+        icon={History}
+        title="No timeline events"
+        description="Events will appear here as the order progresses through the workflow."
+      />
+    );
+
+  return (
+    <ol className="space-y-3">
+      {events.map((e) => {
+        const Icon = TIMELINE_ICON[e.eventType] ?? History;
+        return (
+          <li key={e.id} className="flex gap-3">
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground">
+              <Icon className="h-4 w-4" />
+            </span>
+            <div className="min-w-0 flex-1 border-b pb-3">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-sm font-medium">{e.title}</p>
+                <span className="text-[10px] text-muted-foreground shrink-0">
+                  {formatDate(e.createdAt, {
+                    month: "short",
+                    day: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </span>
+              </div>
+              {e.description ? (
+                <p className="text-sm text-muted-foreground mt-0.5 whitespace-pre-wrap">
+                  {e.description}
+                </p>
+              ) : null}
+              <div className="flex flex-wrap items-center gap-2 mt-1 text-[10px] text-muted-foreground">
+                <Badge variant="outline" className="text-[10px]">
+                  {e.eventType}
+                </Badge>
+                <span>actor: {e.actor}</span>
+              </div>
+            </div>
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
+
+// ============================ Communications tab ============================
+function CommunicationsTab({ order }: { order: OrderDetail }) {
+  const { data, loading, error } = useDashboardFetch<CommunicationLog[]>(
+    `/api/crm/orders/${order.id}/communications`
+  );
+  const { data: integrations } = useDashboardFetch<Integration[]>(
+    "/api/crm/integrations"
+  );
+  const triggerRefresh = useDashboard((s) => s.triggerRefresh);
+
+  const logs = data ?? [];
+  const whatsappConnected =
+    integrations?.some((i) => i.type === "whatsapp" && i.status === "connected") ?? false;
+  const emailConnected =
+    integrations?.some((i) => i.type === "sendgrid" && i.status === "connected") ??
+    integrations?.some((i) => i.type === "email" && i.status === "connected") ??
+    false;
+
+  const [waMessage, setWaMessage] = React.useState("");
+  const [emailSubject, setEmailSubject] = React.useState("");
+  const [emailBody, setEmailBody] = React.useState("");
+  const [sendingWa, setSendingWa] = React.useState(false);
+  const [sendingEmail, setSendingEmail] = React.useState(false);
+
+  const sendWhatsApp = async () => {
+    if (!waMessage.trim()) return;
+    setSendingWa(true);
+    try {
+      const res = await fetch(`/api/crm/orders/${order.id}/communications`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          channel: "whatsapp",
+          message: waMessage.trim(),
+          staffId: "admin",
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Failed");
+      const ok = json.data?.ok ?? false;
+      const deliveryStatus = json.data?.deliveryStatus ?? "unknown";
+      const errorMsg = json.data?.error;
+      if (ok && deliveryStatus === "sent") {
+        toast.success("WhatsApp message sent");
+      } else if (ok && deliveryStatus === "queued") {
+        toast.warning(
+          "Message logged as queued — WhatsApp requires an approved Meta template to dispatch plain text outside the 24h customer-service window."
+        );
+      } else if (errorMsg) {
+        toast.error(`Send failed: ${errorMsg}`);
+      } else {
+        toast.warning("Message recorded but not dispatched.");
+      }
+      setWaMessage("");
+      triggerRefresh();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to send");
+    } finally {
+      setSendingWa(false);
+    }
+  };
+
+  const sendEmail = async () => {
+    if (!emailBody.trim()) return;
+    setSendingEmail(true);
+    try {
+      const res = await fetch(`/api/crm/orders/${order.id}/communications`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          channel: "email",
+          message: emailBody.trim(),
+          staffId: "admin",
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Failed");
+      const ok = json.data?.ok ?? false;
+      const deliveryStatus = json.data?.deliveryStatus ?? "unknown";
+      const errorMsg = json.data?.error;
+      if (ok && (deliveryStatus === "sent" || deliveryStatus === "delivered")) {
+        toast.success("Email sent");
+      } else if (ok && deliveryStatus === "queued") {
+        toast.warning("Email queued — provider will dispatch shortly.");
+      } else if (errorMsg) {
+        toast.error(`Send failed: ${errorMsg}`);
+      } else {
+        toast.warning("Message recorded but not dispatched.");
+      }
+      setEmailSubject("");
+      setEmailBody("");
+      triggerRefresh();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to send");
+    } finally {
+      setSendingEmail(false);
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Send WhatsApp */}
+      <div className="rounded-lg border p-3 space-y-2">
+        <div className="flex items-center justify-between">
+          <p className="text-sm font-medium flex items-center gap-1.5">
+            <MessageCircle className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+            Send WhatsApp
+          </p>
+          {whatsappConnected ? (
+            <Badge className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20">
+              Connected
+            </Badge>
+          ) : (
+            <Badge className="bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/20">
+              Integration Not Configured
+            </Badge>
+          )}
+        </div>
+        <Textarea
+          value={waMessage}
+          onChange={(e) => setWaMessage(e.target.value)}
+          placeholder="Type a WhatsApp message..."
+          rows={2}
+        />
+        <Button
+          size="sm"
+          onClick={sendWhatsApp}
+          disabled={sendingWa || !waMessage.trim()}
+        >
+          {sendingWa ? (
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          ) : (
+            <Send className="h-3.5 w-3.5" />
+          )}
+          Send WhatsApp
+        </Button>
+        {!whatsappConnected ? (
+          <p className="text-xs text-muted-foreground italic">
+            Messages are logged on the order timeline and a CommunicationLog
+            record is created, but no real message is dispatched until a
+            WhatsApp integration is connected.
+          </p>
+        ) : null}
+      </div>
+
+      {/* Send Email */}
+      <div className="rounded-lg border p-3 space-y-2">
+        <div className="flex items-center justify-between">
+          <p className="text-sm font-medium flex items-center gap-1.5">
+            <Mail className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+            Send Email
+          </p>
+          {emailConnected ? (
+            <Badge className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20">
+              Connected
+            </Badge>
+          ) : (
+            <Badge className="bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/20">
+              Integration Not Configured
+            </Badge>
+          )}
+        </div>
+        <Input
+          value={emailSubject}
+          onChange={(e) => setEmailSubject(e.target.value)}
+          placeholder={`Subject (defaults to "Order ${order.orderNumber}")`}
+        />
+        <Textarea
+          value={emailBody}
+          onChange={(e) => setEmailBody(e.target.value)}
+          placeholder="Type an email body..."
+          rows={3}
+        />
+        <Button
+          size="sm"
+          onClick={sendEmail}
+          disabled={sendingEmail || !emailBody.trim()}
+        >
+          {sendingEmail ? (
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          ) : (
+            <Send className="h-3.5 w-3.5" />
+          )}
+          Send Email
+        </Button>
+        {!emailConnected ? (
+          <p className="text-xs text-muted-foreground italic">
+            Emails are logged on the order timeline and a CommunicationLog
+            record is created, but no real message is dispatched until an email
+            integration is connected.
+          </p>
+        ) : null}
+      </div>
+
+      {/* Log */}
+      <div className="rounded-lg border p-3 space-y-2">
+        <p className="text-xs uppercase tracking-wide text-muted-foreground">
+          Communication log ({logs.length})
+        </p>
+        {loading ? (
+          <Skeleton className="h-20 w-full" />
+        ) : error ? (
+          <p className="text-sm text-rose-600 dark:text-rose-400">{error}</p>
+        ) : logs.length === 0 ? (
+          <p className="text-sm text-muted-foreground italic">
+            No communications recorded yet.
+          </p>
+        ) : (
+          <ul className="space-y-2">
+            {logs.map((c) => {
+              const isOutbound = c.direction === "outbound";
+              const Icon = c.channel === "email" ? Mail : MessageCircle;
+              return (
+                <li
+                  key={c.id}
+                  className={cn(
+                    "rounded border p-2 text-sm space-y-1",
+                    isOutbound
+                      ? "bg-blue-500/5 border-blue-500/20"
+                      : "bg-muted/30"
+                  )}
+                >
+                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                    <span className="flex items-center gap-1.5">
+                      <Icon className="h-3 w-3" />
+                      <span className="capitalize">{c.channel}</span>
+                      <span>· {c.direction}</span>
+                    </span>
+                    <span>{formatDate(c.createdAt, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}</span>
+                  </div>
+                  {c.subject ? (
+                    <p className="text-xs font-medium">{c.subject}</p>
+                  ) : null}
+                  <p className="whitespace-pre-wrap">{c.message}</p>
+                  <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+                    <Badge variant="outline" className="text-[10px]">
+                      {c.deliveryStatus}
+                    </Badge>
+                    <span>to: {c.recipient}</span>
+                    {c.errorMessage ? (
+                      <span className="text-rose-600 dark:text-rose-400">
+                        {c.errorMessage}
+                      </span>
+                    ) : null}
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ============================ Actions tab ============================
+function ActionsTab({ order }: { order: OrderDetail }) {
+  const triggerRefresh = useDashboard((s) => s.triggerRefresh);
+  const [staffId, setStaffId] = React.useState<string>(order.assignedStaffId ?? "");
+  const [busy, setBusy] = React.useState<string | null>(null);
+
+  const { data: staff } = useDashboardFetch<StaffMember[]>("/api/crm/employees");
+
+  const patch = async (action: string, label: string) => {
+    setBusy(action);
+    try {
+      const res = await fetch(`/api/crm/orders/${order.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action, adminUserId: "admin" }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Failed");
+      toast.success(label);
+      triggerRefresh();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed");
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const assignStaff = async () => {
+    if (!staffId || staffId === "none") {
+      toast.error("Select a staff member first");
+      return;
+    }
+    setBusy("assign");
+    try {
+      const res = await fetch(`/api/crm/orders/${order.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "assign",
+          staffId,
+          adminUserId: "admin",
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Failed");
+      toast.success("Staff assigned");
+      triggerRefresh();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed");
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const isVerified =
+    order.verificationStatus === "verified" ||
+    order.paymentStatus === "verified" ||
+    order.paymentStatus === "paid";
+  const isRejected =
+    order.verificationStatus === "rejected" ||
+    order.paymentStatus === "rejected" ||
+    order.status === "payment_rejected";
+  const isCompleted = order.status === "order_completed";
+  const isCancelled = order.status === "order_cancelled";
+
+  return (
+    <div className="space-y-3">
+      <div className="rounded-lg border p-3 space-y-2">
+        <p className="text-xs uppercase tracking-wide text-muted-foreground">
+          Payment verification
+        </p>
+        <p className="text-sm text-muted-foreground">
+          Current verification:{" "}
+          <Pill
+            label={order.verificationStatus}
+            colorMap={VERIFICATION_STATUS_COLORS}
+          />
+        </p>
+        <div className="grid grid-cols-2 gap-2">
+          <Button
+            className="bg-emerald-600 hover:bg-emerald-700 text-white"
+            onClick={() => patch("verify", "Payment verified")}
+            disabled={busy !== null || isVerified || isCompleted || isCancelled}
+          >
+            {busy === "verify" ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <CheckCircle2 className="h-3.5 w-3.5" />
+            )}
+            Verify Payment
+          </Button>
+          <Button
+            variant="outline"
+            className="border-rose-500/30 text-rose-700 hover:bg-rose-500/10 dark:text-rose-300"
+            onClick={() => patch("reject", "Payment rejected")}
+            disabled={busy !== null || isRejected || isCompleted || isCancelled}
+          >
+            {busy === "reject" ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <XCircle className="h-3.5 w-3.5" />
+            )}
+            Reject Payment
+          </Button>
+        </div>
+      </div>
+
+      <div className="rounded-lg border p-3 space-y-2">
+        <p className="text-xs uppercase tracking-wide text-muted-foreground">
+          Order lifecycle
+        </p>
+        <div className="grid grid-cols-2 gap-2">
+          <Button
+            variant="outline"
+            onClick={() => patch("complete", "Order completed")}
+            disabled={busy !== null || isCompleted || isCancelled}
+          >
+            {busy === "complete" ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <CheckCircle2 className="h-3.5 w-3.5" />
+            )}
+            Complete Order
+          </Button>
+          <Button
+            variant="outline"
+            className="border-rose-500/30 text-rose-700 hover:bg-rose-500/10 dark:text-rose-300"
+            onClick={() => patch("cancel", "Order cancelled")}
+            disabled={busy !== null || isCompleted || isCancelled}
+          >
+            {busy === "cancel" ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <XCircle className="h-3.5 w-3.5" />
+            )}
+            Cancel Order
+          </Button>
+        </div>
+      </div>
+
+      <div className="rounded-lg border p-3 space-y-2">
+        <p className="text-xs uppercase tracking-wide text-muted-foreground">
+          Assign staff
+        </p>
+        {staff && staff.length > 0 ? (
+          <div className="flex gap-2">
+            <Select value={staffId || "none"} onValueChange={setStaffId}>
+              <SelectTrigger className="flex-1">
+                <SelectValue placeholder="Select staff member" />
               </SelectTrigger>
               <SelectContent>
-                {PAYMENT_METHODS.map((m) => (
-                  <SelectItem key={m} value={m}>
-                    {m}
+                <SelectItem value="none">— Select —</SelectItem>
+                {staff.map((s) => (
+                  <SelectItem key={s.id} value={s.id}>
+                    {s.name} — {s.email}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
-            <p className="text-xs text-amber-600 dark:text-amber-400">
-              Note: no payment gateway is connected — orders will be marked paid
-              with paymentId=null and attribution noting &quot;No payment gateway
-              connected&quot;.
-            </p>
+            <Button
+              onClick={assignStaff}
+              disabled={busy !== null || !staffId || staffId === "none"}
+              variant="outline"
+            >
+              {busy === "assign" ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <UserCog className="h-3.5 w-3.5" />
+              )}
+              Assign
+            </Button>
           </div>
-        </div>
-
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
-          </Button>
-          <Button onClick={submit} disabled={saving}>
-            {saving ? (
-              <>
-                <Loader2 className="h-4 w-4 mr-1 animate-spin" /> Placing order…
-              </>
-            ) : (
-              "Place order"
-            )}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        ) : (
+          <p className="text-xs text-muted-foreground italic">
+            No staff members registered. Add staff under Employees → Directory.
+          </p>
+        )}
+        <p className="text-xs text-muted-foreground">
+          Current:{" "}
+          <span className="font-mono">
+            {order.assignedStaffId ?? "Unassigned"}
+          </span>
+        </p>
+      </div>
+    </div>
   );
 }

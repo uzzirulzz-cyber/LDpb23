@@ -2,33 +2,25 @@
 
 import * as React from "react";
 import {
-  Users,
-  TrendingUp,
-  Banknote,
   ShoppingCart,
-  UserCheck,
-  Bot,
-  Workflow,
-  Percent,
-  Activity as ActivityIcon,
-  Plug,
-  CircleDot,
+  Clock,
+  AlertTriangle,
+  CheckCircle2,
+  XCircle,
+  Loader2,
+  Users,
+  Bot as BotIcon,
+  Bell,
+  Mail,
+  MessageCircle,
+  History,
+  Banknote,
   ArrowRight,
-  Cpu,
-  Sparkles,
 } from "lucide-react";
-import {
-  ResponsiveContainer,
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip as RTooltip,
-} from "recharts";
+
 import { useDashboardFetch } from "@/hooks/use-dashboard-fetch";
 import { useDashboard } from "@/lib/store";
-import { convert, formatMoney, type Currency } from "@/lib/currency";
+import { formatMoney } from "@/lib/currency";
 import { cn } from "@/lib/utils";
 
 import {
@@ -36,20 +28,16 @@ import {
   ChartCard,
   EmptyState,
   LoadingGrid,
-  ChartSkeleton,
+  KpiCard,
 } from "../shared";
-import { BotStatusBadge, timeAgo, formatDate } from "../ui-helpers";
-
 import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card";
+  BotStatusBadge,
+  MiniAvatar,
+  timeAgo,
+} from "../ui-helpers";
+
 import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
 
 // ============================ Types ============================
 interface DashboardKpis {
@@ -64,21 +52,43 @@ interface DashboardKpis {
   idleBots: number;
   funnelsRunning: number;
   apiRunsToday: number;
+  // Production order workflow metrics
+  pendingPayments: number;
+  paymentsUnderReview: number;
+  verifiedPayments: number;
+  failedPayments: number;
+  processingOrders: number;
+  completedOrders: number;
+  customerCommunications: number;
+  botActivity: number;
 }
-interface DashboardActivity {
+
+interface RecentOrder {
   id: string;
-  leadId: string | null;
-  contactId: string | null;
-  accountId: string | null;
-  type: string;
-  description: string;
-  meta: Record<string, unknown>;
+  orderNumber: string;
+  status: string;
+  paymentStatus: string;
+  verificationStatus: string;
+  total: number;
+  currency: string;
   createdAt: string;
-  lead?: { id: string; name: string } | null;
-  contact?: { id: string; firstName: string; lastName: string } | null;
-  account?: { id: string; name: string } | null;
+  customer: { id: string; name: string; email: string };
+  items: never[];
 }
-interface DashboardBot {
+
+interface VerificationQueueItem {
+  id: string;
+  orderNumber: string;
+  status: string;
+  paymentStatus: string;
+  verificationStatus: string;
+  total: number;
+  currency: string;
+  createdAt: string;
+  customer: { id: string; name: string; email: string };
+}
+
+interface BotStatus {
   id: string;
   name: string;
   role: string;
@@ -91,855 +101,526 @@ interface DashboardBot {
   failures: number;
   latencyMs: number;
 }
-interface DashboardData {
+
+interface AdminNotification {
+  id: string;
+  orderId: string | null;
+  type: string;
+  title: string;
+  message: string;
+  metadata: Record<string, unknown>;
+  isRead: boolean;
+  readAt: string | null;
+  createdAt: string;
+  order: {
+    id: string;
+    orderNumber: string;
+    customer: { id: string; name: string; email: string } | null;
+  } | null;
+}
+
+interface TimelineActivity {
+  id: string;
+  orderId: string;
+  eventType: string;
+  title: string;
+  description: string;
+  actor: string;
+  metadata: Record<string, unknown>;
+  createdAt: string;
+  order: {
+    id: string;
+    orderNumber: string;
+    customer: { name: string } | null;
+  } | null;
+}
+
+interface DashboardResponse {
   kpis: DashboardKpis;
   hasData: { leads: boolean; orders: boolean; customers: boolean };
-  recentActivities: DashboardActivity[];
-  recentOrders: unknown[];
-  botStatuses: DashboardBot[];
+  recentActivities: Array<{
+    id: string;
+    type: string;
+    description: string;
+    createdAt: string;
+    lead?: { name: string } | null;
+    contact?: { firstName: string; lastName: string } | null;
+    account?: { name: string } | null;
+  }>;
+  recentOrders: RecentOrder[];
+  botStatuses: BotStatus[];
+  verificationQueue: VerificationQueueItem[];
+  recentNotifications: AdminNotification[];
+  recentTimeline: TimelineActivity[];
 }
 
-interface Integration {
-  id: string;
-  name: string;
-  type: string;
-  status: string;
-  config: Record<string, unknown>;
-  lastSync: string | null;
-  createdAt: string;
-}
-interface FunnelStage {
-  id: string;
-  name: string;
-  code: string;
-  order: number;
-  type: string;
-  createdAt: string;
-}
-interface FunnelRun {
-  id: string;
-  leadId: string;
-  currentStage: string;
-  status: string;
-  startedAt: string;
-  completedAt: string | null;
-}
-interface AnalyticsData {
-  empty: boolean;
-  revenueByMonth: { month: string; revenue: number }[];
-  ordersByStatus: Record<string, number>;
-  leadsBySource: Record<string, number>;
-  leadsByStatus: Record<string, number>;
-  conversionRate: number | "no data";
-  topProducts: { name: string; sku: string; revenue: number; qty: number }[];
-  totals: { orders: number; leads: number; paidOrders: number };
-}
-interface Lead {
-  id: string;
-  name: string;
-  createdAt: string;
-  [k: string]: unknown;
-}
-
-// ============================ Count-up hook ============================
-function useCountUp(target: number, durationMs = 700): number {
-  const [val, setVal] = React.useState(0);
-  React.useEffect(() => {
-    if (!Number.isFinite(target) || target <= 0) {
-      setVal(0);
-      return;
-    }
-    let raf = 0;
-    const start = performance.now();
-    const from = 0;
-    const step = (now: number) => {
-      const t = Math.min(1, (now - start) / durationMs);
-      const eased = 1 - Math.pow(1 - t, 3);
-      setVal(Math.round(from + (target - from) * eased));
-      if (t < 1) raf = requestAnimationFrame(step);
-    };
-    raf = requestAnimationFrame(step);
-    return () => cancelAnimationFrame(raf);
-  }, [target, durationMs]);
-  return val;
-}
-
-function CountUp({
-  value,
-  format,
-}: {
-  value: number;
-  format?: (n: number) => string;
-}) {
-  const v = useCountUp(value);
-  return <>{format ? format(v) : v.toLocaleString()}</>;
-}
-
-// ============================ Premium KPI card ============================
-type KpiTone =
-  | "blue"
-  | "violet"
-  | "emerald"
-  | "amber"
-  | "cyan"
-  | "orange"
-  | "rose"
-  | "slate";
-
-const KPI_TONE: Record<
-  KpiTone,
-  { tile: string; ring: string; glow: string; bar: string }
-> = {
-  blue: {
-    tile: "bg-blue-500/15 text-blue-600 dark:text-blue-300",
-    ring: "ring-blue-500/20",
-    glow: "from-blue-500/10",
-    bar: "bg-blue-500",
-  },
-  violet: {
-    tile: "bg-violet-500/15 text-violet-600 dark:text-violet-300",
-    ring: "ring-violet-500/20",
-    glow: "from-violet-500/10",
-    bar: "bg-violet-500",
-  },
-  emerald: {
-    tile: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-300",
-    ring: "ring-emerald-500/20",
-    glow: "from-emerald-500/10",
-    bar: "bg-emerald-500",
-  },
-  amber: {
-    tile: "bg-amber-500/15 text-amber-600 dark:text-amber-300",
-    ring: "ring-amber-500/20",
-    glow: "from-amber-500/10",
-    bar: "bg-amber-500",
-  },
-  cyan: {
-    tile: "bg-cyan-500/15 text-cyan-600 dark:text-cyan-300",
-    ring: "ring-cyan-500/20",
-    glow: "from-cyan-500/10",
-    bar: "bg-cyan-500",
-  },
-  orange: {
-    tile: "bg-orange-500/15 text-orange-600 dark:text-orange-300",
-    ring: "ring-orange-500/20",
-    glow: "from-orange-500/10",
-    bar: "bg-orange-500",
-  },
-  rose: {
-    tile: "bg-rose-500/15 text-rose-600 dark:text-rose-300",
-    ring: "ring-rose-500/20",
-    glow: "from-rose-500/10",
-    bar: "bg-rose-500",
-  },
-  slate: {
-    tile: "bg-slate-500/15 text-slate-600 dark:text-slate-300",
-    ring: "ring-slate-500/20",
-    glow: "from-slate-500/10",
-    bar: "bg-slate-500",
-  },
+// ============================ Status color maps ============================
+const PAYMENT_STATUS_COLORS: Record<string, string> = {
+  pending: "bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/20",
+  processing: "bg-blue-500/10 text-blue-700 dark:text-blue-300 border-blue-500/20",
+  paid: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20",
+  verified: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20",
+  failed: "bg-rose-500/10 text-rose-700 dark:text-rose-300 border-rose-500/20",
+  rejected: "bg-rose-500/10 text-rose-700 dark:text-rose-300 border-rose-500/20",
+  verification_required: "bg-violet-500/10 text-violet-700 dark:text-violet-300 border-violet-500/20",
 };
 
-function PremiumKpi({
-  label,
-  value,
-  icon: Icon,
-  tone,
-  subtitle,
-  noData,
-}: {
-  label: string;
-  value: number;
-  icon: React.ElementType;
-  tone: KpiTone;
-  subtitle?: string;
-  noData?: boolean;
-}) {
-  const t = KPI_TONE[tone];
-  return (
-    <div
-      className={cn(
-        "glass gradient-card premium-shadow relative overflow-hidden rounded-xl p-4 ring-1",
-        t.ring
-      )}
-    >
-      {/* glow wash */}
-      <div
-        className={cn(
-          "pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full bg-gradient-to-br to-transparent blur-2xl",
-          t.glow
-        )}
-      />
-      <div className="relative flex items-start justify-between gap-2">
-        <div className="space-y-1.5 min-w-0">
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-            {label}
-          </p>
-          {noData ? (
-            <p className="text-sm italic text-muted-foreground/70">No data yet</p>
-          ) : (
-            <p className="text-3xl font-bold tracking-tight tabular-nums">
-              <CountUp value={value} />
-            </p>
-          )}
-          {subtitle ? (
-            <p className="text-xs text-muted-foreground truncate">{subtitle}</p>
-          ) : null}
-        </div>
-        <span
-          className={cn(
-            "flex h-10 w-10 shrink-0 items-center justify-center rounded-lg",
-            t.tile
-          )}
-        >
-          <Icon className="h-5 w-5" />
-        </span>
-      </div>
-      <div className={cn("relative mt-3 h-1 w-full rounded-full bg-muted")}>
-        <div className={cn("h-full w-1/3 rounded-full", t.bar)} />
-      </div>
-    </div>
-  );
-}
+const VERIFICATION_STATUS_COLORS: Record<string, string> = {
+  unverified: "bg-slate-500/10 text-slate-700 dark:text-slate-300 border-slate-500/20",
+  pending: "bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/20",
+  verified: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20",
+  rejected: "bg-rose-500/10 text-rose-700 dark:text-rose-300 border-rose-500/20",
+};
 
-// Money KPI variant — supports displayCurrency conversion
-function PremiumMoneyKpi({
+const ORDER_STATUS_COLORS: Record<string, string> = {
+  account_created: "bg-slate-500/10 text-slate-700 dark:text-slate-300 border-slate-500/20",
+  checkout_started: "bg-blue-500/10 text-blue-700 dark:text-blue-300 border-blue-500/20",
+  payment_pending: "bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/20",
+  payment_submitted: "bg-blue-500/10 text-blue-700 dark:text-blue-300 border-blue-500/20",
+  payment_verification: "bg-violet-500/10 text-violet-700 dark:text-violet-300 border-violet-500/20",
+  payment_verified: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20",
+  order_processing: "bg-blue-500/10 text-blue-700 dark:text-blue-300 border-blue-500/20",
+  order_completed: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20",
+  payment_failed: "bg-rose-500/10 text-rose-700 dark:text-rose-300 border-rose-500/20",
+  payment_rejected: "bg-rose-500/10 text-rose-700 dark:text-rose-300 border-rose-500/20",
+  order_cancelled: "bg-rose-500/10 text-rose-700 dark:text-rose-300 border-rose-500/20",
+};
+
+const NOTIFICATION_TYPE_COLORS: Record<string, string> = {
+  payment_verification_required: "bg-violet-500/10 text-violet-700 dark:text-violet-300 border-violet-500/20",
+  payment_verified: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20",
+  payment_failed: "bg-rose-500/10 text-rose-700 dark:text-rose-300 border-rose-500/20",
+  order_completed: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20",
+  bot_error: "bg-rose-500/10 text-rose-700 dark:text-rose-300 border-rose-500/20",
+  manual_action_required: "bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/20",
+};
+
+const TIMELINE_ICON: Record<string, typeof History> = {
+  order_created: ShoppingCart,
+  payment_submitted: Banknote,
+  payment_verification_started: AlertTriangle,
+  super_admin_notified: Bell,
+  whatsapp_sent: MessageCircle,
+  email_sent: Mail,
+  payment_verified: CheckCircle2,
+  order_processing: Loader2,
+  order_completed: CheckCircle2,
+  payment_failed: XCircle,
+  payment_rejected: XCircle,
+  status_changed: History,
+  note_added: MessageCircle,
+  bot_action: BotIcon,
+  human_action: Users,
+};
+
+function Pill({
   label,
-  pkrValue,
-  icon,
-  tone,
-  displayCurrency,
-  subtitle,
-  noData,
+  colorMap,
 }: {
   label: string;
-  pkrValue: number;
-  icon: React.ElementType;
-  tone: KpiTone;
-  displayCurrency: Currency;
-  subtitle?: string;
-  noData?: boolean;
+  colorMap: Record<string, string>;
 }) {
-  const t = KPI_TONE[tone];
-  const target =
-    displayCurrency === "PKR"
-      ? pkrValue
-      : Math.round(convert(pkrValue, "PKR", displayCurrency));
-  const v = useCountUp(target);
-  const formatted = formatMoney(v, displayCurrency);
   return (
-    <div
+    <span
       className={cn(
-        "glass gradient-card premium-shadow relative overflow-hidden rounded-xl p-4 ring-1",
-        t.ring
+        "inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium whitespace-nowrap",
+        colorMap[label] ??
+          "bg-slate-500/10 text-slate-700 dark:text-slate-300 border-slate-500/20"
       )}
     >
-      <div
-        className={cn(
-          "pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full bg-gradient-to-br to-transparent blur-2xl",
-          t.glow
-        )}
-      />
-      <div className="relative flex items-start justify-between gap-2">
-        <div className="space-y-1.5 min-w-0">
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-            {label}
-          </p>
-          {noData ? (
-            <p className="text-sm italic text-muted-foreground/70">No data yet</p>
-          ) : (
-            <p className="text-3xl font-bold tracking-tight tabular-nums">
-              {formatted}
-            </p>
-          )}
-          {subtitle ? (
-            <p className="text-xs text-muted-foreground truncate">{subtitle}</p>
-          ) : null}
-        </div>
-        <span
-          className={cn(
-            "flex h-10 w-10 shrink-0 items-center justify-center rounded-lg",
-            t.tile
-          )}
-        >
-          {React.createElement(icon, { className: "h-5 w-5" })}
-        </span>
-      </div>
-      <div className={cn("relative mt-3 h-1 w-full rounded-full bg-muted")}>
-        <div className={cn("h-full w-1/3 rounded-full", t.bar)} />
-      </div>
-    </div>
+      {label || "—"}
+    </span>
   );
 }
 
 // ============================ Section ============================
 export function DashboardSection() {
-  const displayCurrency = useDashboard((s) => s.displayCurrency);
+  const { data, loading, error } = useDashboardFetch<DashboardResponse>(
+    "/api/crm/dashboard"
+  );
   const setSection = useDashboard((s) => s.setSection);
 
-  const {
-    data,
-    loading,
-    error,
-  } = useDashboardFetch<DashboardData>("/api/crm/dashboard");
-  const { data: integrations } = useDashboardFetch<Integration[]>(
-    "/api/crm/integrations"
-  );
-  const { data: bots } = useDashboardFetch<DashboardBot[]>("/api/crm/bots");
-  const { data: stages } = useDashboardFetch<FunnelStage[]>(
-    "/api/crm/funnels"
-  );
-  const { data: runs } = useDashboardFetch<FunnelRun[]>(
-    "/api/crm/funnel-runs"
-  );
-  const { data: analytics } = useDashboardFetch<AnalyticsData>(
-    "/api/crm/analytics"
-  );
-  const { data: leads } = useDashboardFetch<Lead[]>("/api/crm/leads?limit=200");
-
-  const k = data?.kpis;
-  const hasData = data?.hasData;
-  const activities = data?.recentActivities ?? [];
-  const botStatuses = bots ?? data?.botStatuses ?? [];
-
-  // Leads by month (derive from leads list)
-  const leadsByMonth = React.useMemo(() => {
-    if (!leads || leads.length === 0) return [];
-    const m: Record<string, number> = {};
-    for (const l of leads) {
-      const d = new Date(l.createdAt);
-      if (Number.isNaN(d.getTime())) continue;
-      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-      m[key] = (m[key] ?? 0) + 1;
-    }
-    return Object.entries(m)
-      .map(([month, count]) => ({ month, count }))
-      .sort((a, b) => a.month.localeCompare(b.month))
-      .slice(-12);
-  }, [leads]);
-
-  const revenueByMonth = analytics?.revenueByMonth ?? [];
-
-  // Funnel stage counts (from runs)
-  const stageCounts = React.useMemo(() => {
-    const map: Record<string, number> = {};
-    for (const r of runs ?? []) {
-      map[r.currentStage] = (map[r.currentStage] ?? 0) + 1;
-    }
-    return map;
-  }, [runs]);
-
-  if (error) {
-    return (
-      <div className="space-y-4">
-        <SectionHeader
-          title="Dashboard"
-          description="Real-time control center for your CRM."
-        />
-        <EmptyState
-          title="Couldn't load dashboard"
-          description={error}
-          icon={Cpu}
-        />
-      </div>
-    );
-  }
+  const kpis = data?.kpis;
+  const recentOrders = data?.recentOrders ?? [];
+  const verificationQueue = data?.verificationQueue ?? [];
+  const botStatuses = data?.botStatuses ?? [];
+  const recentNotifications = data?.recentNotifications ?? [];
+  const recentTimeline = data?.recentTimeline ?? [];
 
   return (
     <div className="space-y-6">
       <SectionHeader
         title="Dashboard"
-        description="Real-time control center for Playbeat CRM — premium overview of pipeline, revenue, automations and health."
-        action={
-          <Badge
-            variant="outline"
-            className="gap-1.5 border-primary/30 bg-primary/5 text-primary"
-          >
-            <Sparkles className="h-3.5 w-3.5" />
-            Premium
-          </Badge>
-        }
+        description="Production overview — order lifecycle, payment verifications, bot health, and real-time activity. All metrics computed from live DB queries."
       />
 
-      {/* ============ KPI grid ============ */}
-      {loading && !data ? (
-        <LoadingGrid count={8} />
-      ) : (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <PremiumKpi
-            label="Total Leads"
-            value={k?.totalLeads ?? 0}
-            icon={Users}
-            tone="blue"
-            subtitle={`${k?.newLeads ?? 0} new · ${k?.wonLeads ?? 0} won`}
-            noData={hasData ? !hasData.leads : false}
-          />
-          <PremiumMoneyKpi
-            label="Pipeline Value"
-            pkrValue={k?.pipelineValuePkr ?? 0}
-            icon={TrendingUp}
-            tone="violet"
-            displayCurrency={displayCurrency}
-            subtitle="Open leads, in display currency"
-            noData={hasData ? !hasData.leads : false}
-          />
-          <PremiumMoneyKpi
-            label="Revenue"
-            pkrValue={k?.revenuePkr ?? 0}
-            icon={Banknote}
-            tone="emerald"
-            displayCurrency={displayCurrency}
-            subtitle="Paid orders only"
-            noData={hasData ? !hasData.orders : false}
-          />
-          <PremiumKpi
-            label="Orders"
-            value={k?.ordersCount ?? 0}
-            icon={ShoppingCart}
-            tone="amber"
-            subtitle={`${k?.apiRunsToday ?? 0} API runs today`}
-            noData={hasData ? !hasData.orders : false}
-          />
-          <PremiumKpi
-            label="Customers"
-            value={k?.customersCount ?? 0}
-            icon={UserCheck}
-            tone="cyan"
-            subtitle="Lifetime customer records"
-            noData={hasData ? !hasData.customers : false}
-          />
-          <PremiumKpi
-            label="Active Bots"
-            value={k?.activeBots ?? 0}
-            icon={Bot}
-            tone="orange"
-            subtitle={`${k?.idleBots ?? 0} idle`}
-            noData={botStatuses.length === 0}
-          />
-          <PremiumKpi
-            label="Funnels Running"
-            value={k?.funnelsRunning ?? 0}
-            icon={Workflow}
-            tone="rose"
-            subtitle="Live funnel runs in progress"
-            noData={k ? k.funnelsRunning === 0 : false}
-          />
-          <PremiumKpi
-            label="Conversion Rate"
-            value={
-              typeof analytics?.conversionRate === "number"
-                ? analytics.conversionRate
-                : 0
-            }
-            icon={Percent}
-            tone="slate"
-            subtitle={
-              analytics?.conversionRate === "no data"
-                ? "Closed deals will appear here"
-                : "Won / (won + lost)"
-            }
-            noData={analytics?.conversionRate === "no data"}
-          />
+      {error ? (
+        <div className="rounded-md border border-rose-500/30 bg-rose-500/5 p-4 text-sm text-rose-700 dark:text-rose-300">
+          Error loading dashboard: {error}
         </div>
-      )}
-
-      {/* ============ Charts ============ */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        {loading && !analytics ? (
-          <ChartSkeleton height={240} />
-        ) : (
-          <ChartCard
-            title="Revenue (PKR)"
-            description={`Paid orders by month, in ${displayCurrency}.`}
-            noData={revenueByMonth.length === 0}
-          >
-            <RevenueChart
-              data={revenueByMonth.map((r) => ({
-                month: r.month,
-                value:
-                  displayCurrency === "PKR"
-                    ? r.revenue
-                    : Math.round(convert(r.revenue, "PKR", displayCurrency)),
-              }))}
-              currency={displayCurrency}
+      ) : loading ? (
+        <LoadingGrid count={9} />
+      ) : (
+        <>
+          {/* KPIs — 9 production metrics */}
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3">
+            <KpiCard
+              label="Total Orders"
+              value={kpis?.ordersCount ?? 0}
+              icon={ShoppingCart}
+              tone="blue"
+              noData={(kpis?.ordersCount ?? 0) === 0}
             />
-          </ChartCard>
-        )}
+            <KpiCard
+              label="Pending Payments"
+              value={kpis?.pendingPayments ?? 0}
+              icon={Clock}
+              tone="amber"
+              noData={(kpis?.pendingPayments ?? 0) === 0}
+            />
+            <KpiCard
+              label="Payments Under Review"
+              value={kpis?.paymentsUnderReview ?? 0}
+              icon={AlertTriangle}
+              tone="violet"
+              noData={(kpis?.paymentsUnderReview ?? 0) === 0}
+            />
+            <KpiCard
+              label="Verified Payments"
+              value={kpis?.verifiedPayments ?? 0}
+              icon={CheckCircle2}
+              tone="emerald"
+              noData={(kpis?.verifiedPayments ?? 0) === 0}
+            />
+            <KpiCard
+              label="Failed Payments"
+              value={kpis?.failedPayments ?? 0}
+              icon={XCircle}
+              tone="rose"
+              noData={(kpis?.failedPayments ?? 0) === 0}
+            />
+            <KpiCard
+              label="Processing Orders"
+              value={kpis?.processingOrders ?? 0}
+              icon={Loader2}
+              tone="cyan"
+              noData={(kpis?.processingOrders ?? 0) === 0}
+            />
+            <KpiCard
+              label="Completed Orders"
+              value={kpis?.completedOrders ?? 0}
+              icon={CheckCircle2}
+              tone="emerald"
+              noData={(kpis?.completedOrders ?? 0) === 0}
+            />
+            <KpiCard
+              label="Customer Communications"
+              value={kpis?.customerCommunications ?? 0}
+              icon={MessageCircle}
+              tone="orange"
+              noData={(kpis?.customerCommunications ?? 0) === 0}
+            />
+            <KpiCard
+              label="Bot Activity (24h)"
+              value={kpis?.botActivity ?? 0}
+              icon={BotIcon}
+              tone="violet"
+              noData={(kpis?.botActivity ?? 0) === 0}
+            />
+          </div>
 
-        {loading && !leads ? (
-          <ChartSkeleton height={240} />
-        ) : (
-          <ChartCard
-            title="Leads"
-            description="New leads created per month."
-            noData={leadsByMonth.length === 0}
-          >
-            <LeadsChart data={leadsByMonth} />
-          </ChartCard>
-        )}
-      </div>
-
-      {/* ============ Funnel + Bots ============ */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <Card className="glass card-shadow lg:col-span-2">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Workflow className="h-4 w-4 text-primary" />
-              Funnel Visualization
-            </CardTitle>
-            <CardDescription>
-              Lead flow across pipeline stages. Counts reflect active funnel runs.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {loading && !stages ? (
-              <Skeleton className="h-28 w-full" />
-            ) : !stages || stages.length === 0 ? (
-              <EmptyState
-                title="No funnel stages yet"
-                description="Configure your funnel stages in the Funnels section to visualize lead flow."
-                icon={Workflow}
-                action={
-                  <button
-                    className="inline-flex h-8 items-center gap-1.5 rounded-md bg-primary px-3 text-xs font-medium text-primary-foreground hover:bg-primary/90"
-                    onClick={() => setSection("funnels")}
-                  >
-                    Open Funnels <ArrowRight className="h-3.5 w-3.5" />
-                  </button>
-                }
-              />
-            ) : (
-              <FunnelFlow stages={stages} counts={stageCounts} />
-            )}
-          </CardContent>
-        </Card>
-
-        <Card className="glass card-shadow">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Bot className="h-4 w-4 text-primary" />
-              Bot Status
-            </CardTitle>
-            <CardDescription>
-              Live automation workers. Honest status — all idle until executed.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {loading && !bots ? (
-              <div className="space-y-2">
-                {Array.from({ length: 4 }).map((_, i) => (
-                  <Skeleton key={i} className="h-12 w-full" />
-                ))}
-              </div>
-            ) : botStatuses.length === 0 ? (
-              <EmptyState
-                title="No bots registered"
-                description="Provision bots in the Bots section to enable automated workers."
-                icon={Bot}
-              />
-            ) : (
-              <div className="grid grid-cols-1 gap-2">
-                {botStatuses.map((b) => (
-                  <div
-                    key={b.id}
-                    className="flex items-center justify-between gap-2 rounded-lg border border-border/60 bg-background/40 px-3 py-2"
-                  >
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-medium">{b.name}</p>
-                      <p className="truncate text-xs text-muted-foreground capitalize">
-                        {b.role}
-                        {b.currentJob ? ` · ${b.currentJob}` : ""}
-                      </p>
-                    </div>
-                    <BotStatusBadge status={b.status} />
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* ============ Activity + Integrations ============ */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <Card className="glass card-shadow lg:col-span-2">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <ActivityIcon className="h-4 w-4 text-primary" />
-              Activity Stream
-            </CardTitle>
-            <CardDescription>
-              Recent events across leads, contacts and accounts.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {loading && !data ? (
-              <div className="space-y-2">
-                {Array.from({ length: 5 }).map((_, i) => (
-                  <Skeleton key={i} className="h-10 w-full" />
-                ))}
-              </div>
-            ) : activities.length === 0 ? (
-              <EmptyState
-                title="No activity yet"
-                description="Create leads, contacts or accounts — events will stream here in real time."
-                icon={ActivityIcon}
-              />
-            ) : (
-              <ScrollArea className="h-72 pr-3">
-                <ol className="relative space-y-3 border-l border-border/60 pl-4">
-                  {activities.map((a) => (
-                    <li key={a.id} className="relative">
-                      <span className="absolute -left-[19px] top-1.5 flex h-2.5 w-2.5 items-center justify-center">
-                        <CircleDot className="h-2.5 w-2.5 text-primary" />
-                      </span>
-                      <div className="flex items-start justify-between gap-2">
+          <div className="grid gap-4 lg:grid-cols-2">
+            {/* Recent orders */}
+            <ChartCard
+              title="Recent Orders"
+              description="5 most recent orders with full status flags."
+              action={
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setSection("orders")}
+                >
+                  View all
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </Button>
+              }
+            >
+              {recentOrders.length === 0 ? (
+                <EmptyState
+                  icon={ShoppingCart}
+                  title="No orders yet"
+                  description="Orders appear here when customers check out via the storefront."
+                  className="my-3"
+                />
+              ) : (
+                <div className="space-y-2">
+                  {recentOrders.map((o) => (
+                    <div
+                      key={o.id}
+                      className="flex items-center justify-between gap-3 rounded-lg border p-2.5"
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <MiniAvatar
+                          name={o.customer?.name ?? "?"}
+                          size={32}
+                        />
                         <div className="min-w-0">
-                          <p className="text-sm">{a.description}</p>
-                          <p className="text-xs text-muted-foreground capitalize">
-                            {a.type.replace(/_/g, " ")}
-                            {a.lead?.name ? ` · ${a.lead.name}` : ""}
-                            {a.contact
-                              ? ` · ${a.contact.firstName} ${a.contact.lastName}`
-                              : ""}
-                            {a.account?.name ? ` · ${a.account.name}` : ""}
+                          <p className="text-sm font-medium truncate">
+                            {o.customer?.name ?? "—"}
+                          </p>
+                          <p className="text-xs text-muted-foreground font-mono">
+                            {o.orderNumber}
                           </p>
                         </div>
-                        <span className="shrink-0 text-[11px] text-muted-foreground">
-                          {timeAgo(a.createdAt)}
-                        </span>
                       </div>
-                    </li>
-                  ))}
-                </ol>
-              </ScrollArea>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card className="glass card-shadow">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Plug className="h-4 w-4 text-primary" />
-              API Health
-            </CardTitle>
-            <CardDescription>
-              Integration connection status (honest — disconnected by default).
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {loading && !integrations ? (
-              <div className="space-y-2">
-                {Array.from({ length: 4 }).map((_, i) => (
-                  <Skeleton key={i} className="h-10 w-full" />
-                ))}
-              </div>
-            ) : !integrations || integrations.length === 0 ? (
-              <EmptyState
-                title="No integrations yet"
-                description="Connect Google, Facebook, WhatsApp and more in the Integrations section."
-                icon={Plug}
-              />
-            ) : (
-              <div className="grid grid-cols-1 gap-2">
-                {integrations.map((it) => {
-                  const ok = it.status === "connected";
-                  return (
-                    <div
-                      key={it.id}
-                      className="flex items-center justify-between gap-2 rounded-lg border border-border/60 bg-background/40 px-3 py-2"
-                    >
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-medium">{it.name}</p>
-                        <p className="truncate text-xs text-muted-foreground capitalize">
-                          {it.type}
-                          {it.lastSync
-                            ? ` · synced ${timeAgo(it.lastSync)}`
-                            : " · never synced"}
+                      <div className="text-right shrink-0">
+                        <p className="text-sm font-semibold tabular-nums">
+                          {formatMoney(o.total, "PKR")}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {timeAgo(o.createdAt)}
                         </p>
                       </div>
-                      <span className="flex items-center gap-1.5 text-xs font-medium capitalize">
-                        <span
-                          className={cn(
-                            "h-2 w-2 rounded-full",
-                            ok
-                              ? "bg-emerald-500 pulse-dot"
-                              : it.status === "error"
-                                ? "bg-rose-500"
-                                : "bg-slate-400"
-                          )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </ChartCard>
+
+            {/* Payment verification queue */}
+            <ChartCard
+              title="Payment Verification Queue"
+              description="Orders awaiting admin verification."
+              action={
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setSection("orders")}
+                >
+                  Open
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </Button>
+              }
+            >
+              {verificationQueue.length === 0 ? (
+                <EmptyState
+                  icon={CheckCircle2}
+                  title="Queue clear"
+                  description="No payments are awaiting verification. Nice."
+                  className="my-3"
+                />
+              ) : (
+                <div className="space-y-2">
+                  {verificationQueue.slice(0, 8).map((o) => (
+                    <div
+                      key={o.id}
+                      className="flex items-center justify-between gap-2 rounded-lg border p-2.5"
+                    >
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium truncate">
+                          {o.customer?.name ?? "—"}
+                        </p>
+                        <p className="text-xs text-muted-foreground font-mono">
+                          {o.orderNumber}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <Pill
+                          label={o.paymentStatus}
+                          colorMap={PAYMENT_STATUS_COLORS}
                         />
+                        <span className="text-sm font-semibold tabular-nums">
+                          {formatMoney(o.total, "PKR")}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </ChartCard>
+
+            {/* Bot status grid */}
+            <ChartCard
+              title="Bot Status"
+              description="Real worker framework — live backend state."
+              action={
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setSection("bots")}
+                >
+                  Manage
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </Button>
+              }
+            >
+              {botStatuses.length === 0 ? (
+                <EmptyState
+                  icon={BotIcon}
+                  title="No bots"
+                  description="Register bots under Bots to see real-time status."
+                  className="my-3"
+                />
+              ) : (
+                <div className="grid grid-cols-2 gap-2">
+                  {botStatuses.map((b) => (
+                    <div
+                      key={b.id}
+                      className="rounded-lg border p-2.5 space-y-1"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-sm font-medium truncate">
+                          {b.name}
+                        </p>
+                        <BotStatusBadge status={b.status} />
+                      </div>
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wide">
+                        {b.role}
+                      </p>
+                      <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+                        <span>
+                          exec: <span className="tabular-nums">{b.executions}</span>
+                        </span>
+                        <span>
+                          ok:{" "}
+                          <span className="tabular-nums text-emerald-600 dark:text-emerald-400">
+                            {b.successes}
+                          </span>
+                        </span>
+                        <span>
+                          fail:{" "}
+                          <span className="tabular-nums text-rose-600 dark:text-rose-400">
+                            {b.failures}
+                          </span>
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </ChartCard>
+
+            {/* Recent notifications */}
+            <ChartCard
+              title="Recent Notifications"
+              description="3 most recent unread admin alerts."
+              action={
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setSection("notifications")}
+                >
+                  All
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </Button>
+              }
+            >
+              {recentNotifications.length === 0 ? (
+                <EmptyState
+                  icon={Bell}
+                  title="No unread notifications"
+                  description="You're all caught up."
+                  className="my-3"
+                />
+              ) : (
+                <div className="space-y-2">
+                  {recentNotifications.map((n) => (
+                    <div
+                      key={n.id}
+                      className="rounded-lg border p-2.5 space-y-1 bg-amber-50/40 dark:bg-amber-500/[0.04] border-amber-500/20"
+                    >
+                      <div className="flex items-center justify-between gap-2">
                         <span
                           className={cn(
-                            ok
-                              ? "text-emerald-600 dark:text-emerald-400"
-                              : it.status === "error"
-                                ? "text-rose-600 dark:text-rose-400"
-                                : "text-muted-foreground"
+                            "inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium",
+                            NOTIFICATION_TYPE_COLORS[n.type] ??
+                              "bg-slate-500/10 text-slate-700 dark:text-slate-300 border-slate-500/20"
                           )}
                         >
-                          {it.status}
+                          {n.type.replace(/_/g, " ")}
                         </span>
-                      </span>
+                        <span className="text-[10px] text-muted-foreground">
+                          {timeAgo(n.createdAt)}
+                        </span>
+                      </div>
+                      <p className="text-sm font-medium truncate">{n.title}</p>
+                      <p className="text-xs text-muted-foreground line-clamp-2">
+                        {n.message}
+                      </p>
+                      {n.order ? (
+                        <p className="text-[10px] text-muted-foreground font-mono">
+                          {n.order.orderNumber} ·{" "}
+                          {n.order.customer?.name ?? "—"}
+                        </p>
+                      ) : null}
                     </div>
+                  ))}
+                </div>
+              )}
+            </ChartCard>
+          </div>
+
+          {/* Real-time activity stream */}
+          <ChartCard
+            title="Real-time Activity Stream"
+            description="Recent order timeline events across all customers — chronological."
+          >
+            {recentTimeline.length === 0 ? (
+              <EmptyState
+                icon={History}
+                title="No activity yet"
+                description="Order timeline events (creation, payments, verifications, communications) will stream here in real time."
+                className="my-4"
+              />
+            ) : (
+              <ol className="space-y-2.5">
+                {recentTimeline.map((e) => {
+                  const Icon = TIMELINE_ICON[e.eventType] ?? History;
+                  return (
+                    <li
+                      key={e.id}
+                      className="flex items-start gap-3 border-b pb-2.5 last:border-0 last:pb-0"
+                    >
+                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground">
+                        <Icon className="h-4 w-4" />
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="text-sm font-medium truncate">
+                            {e.title}
+                          </p>
+                          <span className="text-[10px] text-muted-foreground shrink-0">
+                            {timeAgo(e.createdAt)}
+                          </span>
+                        </div>
+                        {e.description ? (
+                          <p className="text-xs text-muted-foreground line-clamp-1">
+                            {e.description}
+                          </p>
+                        ) : null}
+                        <div className="flex items-center gap-2 mt-0.5 text-[10px] text-muted-foreground">
+                          {e.order ? (
+                            <span className="font-mono">
+                              {e.order.orderNumber}
+                              {e.order.customer?.name
+                                ? ` · ${e.order.customer.name}`
+                                : ""}
+                            </span>
+                          ) : null}
+                          <Badge variant="outline" className="text-[10px]">
+                            {e.eventType}
+                          </Badge>
+                          <span>actor: {e.actor}</span>
+                        </div>
+                      </div>
+                    </li>
                   );
                 })}
-              </div>
+              </ol>
             )}
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Honest helper note */}
-      <p className="text-center text-xs text-muted-foreground/70">
-        Dashboard reflects live CRM data · {formatDate(new Date().toISOString())}{" "}
-        · No mock values shown
-      </p>
+          </ChartCard>
+        </>
+      )}
     </div>
   );
 }
-
-// ============================ Revenue chart ============================
-function RevenueChart({
-  data,
-  currency,
-}: {
-  data: { month: string; value: number }[];
-  currency: Currency;
-}) {
-  return (
-    <ResponsiveContainer width="100%" height={240}>
-      <AreaChart data={data} margin={{ top: 6, right: 6, bottom: 0, left: 0 }}>
-        <defs>
-          <linearGradient id="revGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="var(--primary)" stopOpacity={0.45} />
-            <stop offset="100%" stopColor="var(--primary)" stopOpacity={0} />
-          </linearGradient>
-        </defs>
-        <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-        <XAxis
-          dataKey="month"
-          tick={{ fill: "var(--muted-foreground)", fontSize: 11 }}
-          tickLine={false}
-          axisLine={false}
-        />
-        <YAxis
-          tick={{ fill: "var(--muted-foreground)", fontSize: 11 }}
-          tickLine={false}
-          axisLine={false}
-          width={48}
-          tickFormatter={(v) =>
-            v >= 1000 ? `${(v / 1000).toFixed(0)}k` : `${v}`
-          }
-        />
-        <RTooltip
-          contentStyle={{
-            background: "var(--popover)",
-            border: "1px solid var(--border)",
-            borderRadius: 8,
-            color: "var(--popover-foreground)",
-            fontSize: 12,
-          }}
-          formatter={(v: number) => [formatMoney(v, currency), "Revenue"]}
-          labelStyle={{ color: "var(--muted-foreground)" }}
-        />
-        <Area
-          type="monotone"
-          dataKey="value"
-          stroke="var(--primary)"
-          strokeWidth={2}
-          fill="url(#revGrad)"
-        />
-      </AreaChart>
-    </ResponsiveContainer>
-  );
-}
-
-// ============================ Leads chart ============================
-function LeadsChart({ data }: { data: { month: string; count: number }[] }) {
-  return (
-    <ResponsiveContainer width="100%" height={240}>
-      <AreaChart data={data} margin={{ top: 6, right: 6, bottom: 0, left: 0 }}>
-        <defs>
-          <linearGradient id="leadsGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#8b5cf6" stopOpacity={0.45} />
-            <stop offset="100%" stopColor="#8b5cf6" stopOpacity={0} />
-          </linearGradient>
-        </defs>
-        <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-        <XAxis
-          dataKey="month"
-          tick={{ fill: "var(--muted-foreground)", fontSize: 11 }}
-          tickLine={false}
-          axisLine={false}
-        />
-        <YAxis
-          tick={{ fill: "var(--muted-foreground)", fontSize: 11 }}
-          tickLine={false}
-          axisLine={false}
-          width={32}
-          allowDecimals={false}
-        />
-        <RTooltip
-          contentStyle={{
-            background: "var(--popover)",
-            border: "1px solid var(--border)",
-            borderRadius: 8,
-            color: "var(--popover-foreground)",
-            fontSize: 12,
-          }}
-          formatter={(v: number) => [v, "Leads"]}
-          labelStyle={{ color: "var(--muted-foreground)" }}
-        />
-        <Area
-          type="monotone"
-          dataKey="count"
-          stroke="#8b5cf6"
-          strokeWidth={2}
-          fill="url(#leadsGrad)"
-        />
-      </AreaChart>
-    </ResponsiveContainer>
-  );
-}
-
-// ============================ Funnel flow viz ============================
-function FunnelFlow({
-  stages,
-  counts,
-}: {
-  stages: FunnelStage[];
-  counts: Record<string, number>;
-}) {
-  const total = stages.length;
-  return (
-    <div className="flex gap-2 overflow-x-auto pb-2">
-      {stages.map((s, i) => {
-        const c = counts[s.code] ?? 0;
-        return (
-          <React.Fragment key={s.id}>
-            <div className="flex min-w-[110px] flex-col items-center gap-1 rounded-lg border border-border/60 bg-background/40 px-3 py-2 text-center">
-              <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                {i + 1} / {total}
-              </span>
-              <span className="text-sm font-medium leading-tight">{s.name}</span>
-              <span className="text-xl font-bold tabular-nums text-primary">
-                {c}
-              </span>
-              <span className="text-[10px] text-muted-foreground capitalize">
-                {s.type}
-              </span>
-            </div>
-            {i < stages.length - 1 ? (
-              <div className="flex items-center">
-                <ArrowRight className="h-4 w-4 text-muted-foreground/60" />
-              </div>
-            ) : null}
-          </React.Fragment>
-        );
-      })}
-    </div>
-  );
-}
-
-

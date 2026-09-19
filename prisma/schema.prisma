@@ -102,26 +102,42 @@ model CartItem {
 }
 
 model Order {
-  id              String      @id @default(cuid())
-  orderNumber     String      @unique
-  customerId      String
-  customer        Customer    @relation(fields: [customerId], references: [id])
-  status          String      @default("pending") // pending | paid | fulfilled | cancelled | refunded
-  paymentStatus   String      @default("unpaid")  // unpaid | paid | failed | refunded
-  paymentMethod   String?
-  paymentId       String?
-  subtotal        Float       @default(0)
-  tax             Float       @default(0)
-  total           Float       @default(0)
-  currency        String      @default("PKR")
-  sourceCurrency  String      @default("PKR")
-  fxRate          Float       @default(1)
-  fxTimestamp     DateTime?
-  fxSource        String?
-  attribution     String?
-  items           OrderItem[]
-  createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @updatedAt
+  id                  String      @id @default(cuid())
+  orderNumber         String      @unique
+  customerId          String
+  customer            Customer    @relation(fields: [customerId], references: [id])
+  // Order status state machine: account_created → checkout_started → payment_pending →
+  // payment_submitted → payment_verification → payment_verified → order_processing →
+  // order_completed | payment_failed | payment_rejected | order_cancelled
+  status              String      @default("account_created")
+  // Payment status: pending | processing | paid | payment_failed | payment_cancelled |
+  // verification_required | verified | rejected | refunded
+  paymentStatus       String      @default("pending")
+  paymentMethod       String?
+  paymentProvider     String?     // rapid-gateway | stripe | manual
+  paymentId           String?     // gateway transaction ref
+  verificationStatus  String      @default("unverified") // unverified | pending | verified | rejected
+  commStatus          String      @default("none") // none | notified | responded
+  assignedBotId       String?     // bot processing this order
+  assignedStaffId     String?     // staff member assigned
+  adminNotes          String      @default("[]") // JSON array of notes
+  auditHistory        String      @default("[]") // JSON array of audit entries
+  subtotal            Float       @default(0)
+  discount            Float       @default(0)
+  tax                 Float       @default(0)
+  total               Float       @default(0)
+  currency            String      @default("PKR")
+  sourceCurrency      String      @default("PKR")
+  fxRate              Float       @default(1)
+  fxTimestamp         DateTime?
+  fxSource            String?
+  attribution         String?
+  items               OrderItem[]
+  timeline            OrderTimelineEvent[]
+  communications      CommunicationLog[]
+  notifications       AdminNotification[]
+  createdAt           DateTime    @default(now())
+  updatedAt           DateTime    @updatedAt
 }
 
 model OrderItem {
@@ -598,4 +614,77 @@ model PixelEvent {
   currency   String?
   source     String   @default("client")
   createdAt  DateTime @default(now())
+}
+
+// ============ ORDER TIMELINE (unified customer timeline) ============
+model OrderTimelineEvent {
+  id          String   @id @default(cuid())
+  orderId     String
+  eventType   String   // order_created | payment_submitted | payment_verification_started |
+                       // super_admin_notified | whatsapp_sent | email_sent | payment_verified |
+                       // order_processing | order_completed | payment_failed | payment_rejected |
+                       // status_changed | note_added | bot_action | human_action
+  title       String
+  description String
+  actor       String   // bot:{id} | staff:{id} | customer:{id} | system
+  metadata    String   @default("{}") // JSON
+  createdAt   DateTime @default(now())
+  order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+}
+
+// ============ COMMUNICATION LOG (WhatsApp + Email) ============
+model CommunicationLog {
+  id              String   @id @default(cuid())
+  orderId         String?
+  customerId      String?
+  channel         String   // whatsapp | email | sms
+  direction       String   // inbound | outbound
+  recipient       String   // phone or email
+  sender          String?  // from address/number
+  subject         String?  // email subject
+  message         String   // message body
+  templateKey     String?  // order_received | payment_verified | etc.
+  providerMsgId   String?  // WhatsApp message ID / email message ID
+  deliveryStatus  String   @default("queued") // queued | sent | delivered | read | failed
+  readStatus      Boolean  @default(false)
+  errorMessage    String?
+  botId           String?  // bot that sent this
+  staffId         String?  // staff that sent this
+  createdAt       DateTime @default(now())
+  order           Order?   @relation(fields: [orderId], references: [id], onDelete: SetNull)
+}
+
+// ============ ADMIN NOTIFICATIONS ============
+model AdminNotification {
+  id          String    @id @default(cuid())
+  orderId     String?
+  type        String    // payment_verification_required | payment_verified | payment_failed |
+                       // order_completed | bot_error | manual_action_required
+  title       String
+  message     String
+  metadata    String    @default("{}") // JSON with order details
+  isRead      Boolean   @default(false)
+  readAt      DateTime?
+  readBy      String?   // admin user ID
+  createdAt   DateTime  @default(now())
+  order       Order?    @relation(fields: [orderId], references: [id], onDelete: SetNull)
+}
+
+// ============ BOT TASKS (execution queue) ============
+model BotTask {
+  id           String    @id @default(cuid())
+  botId        String
+  orderId      String?
+  taskType     String    // verify_payment | process_order | send_notification | route_support
+  status       String    @default("queued") // queued | running | completed | failed | retrying
+  priority     Int       @default(5)
+  payload      String    @default("{}") // JSON
+  result       String    @default("{}") // JSON
+  errorMessage String?
+  attempts     Int       @default(0)
+  maxAttempts  Int       @default(3)
+  scheduledAt  DateTime  @default(now())
+  startedAt    DateTime?
+  completedAt  DateTime?
+  createdAt    DateTime  @default(now())
 }

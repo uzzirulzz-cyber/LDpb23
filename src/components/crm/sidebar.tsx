@@ -4,7 +4,7 @@ import Image from "next/image";
 import {
   LayoutDashboard, Users, Contact, Building2, Filter, Plug,
   Waves, Workflow, Gavel, Bot, Inbox, ShoppingCart, Package,
-  BarChart3, Plug2, ScrollText, Settings, Radio,
+  BarChart3, Plug2, ScrollText, Settings, Radio, Bell,
   Truck, PackageCheck, Send, Building2 as BuildingIcon,
   Users as UsersIcon, Clock, DollarSign, TrendingUp,
 } from "lucide-react";
@@ -47,6 +47,7 @@ const GROUPS: { group: string; items: NavItem[] }[] = [
     items: [
       { id: "customers", label: "Customers", icon: Users },
       { id: "orders", label: "Orders", icon: ShoppingCart },
+      { id: "notifications", label: "Notifications", icon: Bell },
       { id: "analytics", label: "Analytics", icon: BarChart3 },
     ],
   },

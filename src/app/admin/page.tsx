@@ -19,6 +19,7 @@ const BotsSection = dynamic(() => import("@/components/crm/sections/bots").then(
 const InboxSection = dynamic(() => import("@/components/crm/sections/inbox").then((m) => m.InboxSection), { ssr: false });
 const CustomersSection = dynamic(() => import("@/components/crm/sections/customers").then((m) => m.CustomersSection), { ssr: false });
 const OrdersSection = dynamic(() => import("@/components/crm/sections/orders").then((m) => m.OrdersSection), { ssr: false });
+const NotificationsSection = dynamic(() => import("@/components/crm/sections/notifications").then((m) => m.NotificationsSection), { ssr: false });
 const AnalyticsSection = dynamic(() => import("@/components/crm/sections/analytics").then((m) => m.AnalyticsSection), { ssr: false });
 const IntegrationsSection = dynamic(() => import("@/components/crm/sections/integrations").then((m) => m.IntegrationsSection), { ssr: false });
 const AuditSection = dynamic(() => import("@/components/crm/sections/audit").then((m) => m.AuditSection), { ssr: false });
@@ -60,6 +61,7 @@ export default function CrmPage() {
             {section === "inbox" && <InboxSection />}
             {section === "customers" && <CustomersSection />}
             {section === "orders" && <OrdersSection />}
+            {section === "notifications" && <NotificationsSection />}
             {section === "analytics" && <AnalyticsSection />}
             {section === "integrations" && <IntegrationsSection />}
             {section === "audit" && <AuditSection />}
