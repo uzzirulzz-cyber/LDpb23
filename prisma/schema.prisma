@@ -1,0 +1,89 @@
+// PLAYBEAT PULSE — Lead Intelligence & Sales CRM schema
+// Multi-currency (PKR/USD/AED), multi-source waterfall discovery, Meta & WhatsApp comms.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Rep {
+  id        String   @id @default(cuid())
+  name      String
+  email     String
+  avatar    String?
+  role      String   @default("sales") // admin | manager | sales
+  region    String?  // PK | AE | US | GLOBAL
+  target    Float    @default(0) // monthly target in USD
+  createdAt DateTime @default(now())
+  leads     Lead[]
+}
+
+model Lead {
+  id         String   @id @default(cuid())
+  name       String
+  email      String
+  phone      String
+  company    String?
+  country    String?
+  source     String   // website | facebook | instagram | whatsapp | referral | ads | organic | api
+  status     String   @default("new") // new | contacted | qualified | proposal | negotiation | won | lost
+  stage      String   @default("new") // pipeline stage mirror
+  value      Float    @default(0)
+  currency   String   @default("PKR") // PKR | USD | AED
+  score      Int      @default(50) // 0-100 lead score
+  tags       String?  // comma separated
+  assignedTo String?
+  rep        Rep?     @relation(fields: [assignedTo], references: [id])
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  activities Activity[]
+  messages   Message[]
+  deals      Deal[]
+}
+
+model Activity {
+  id          String   @id @default(cuid())
+  leadId      String
+  type        String   // call | email | meeting | note | status_change | assigned | message
+  description String
+  meta        String?  // JSON string for extra data
+  createdAt   DateTime @default(now())
+  lead        Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+}
+
+model Message {
+  id        String   @id @default(cuid())
+  leadId    String
+  channel   String   // meta | whatsapp | sms | email
+  direction String   // inbound | outbound
+  content   String
+  status    String   @default("sent") // sent | delivered | read | failed
+  createdAt DateTime @default(now())
+  lead      Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+}
+
+model Deal {
+  id        String    @id @default(cuid())
+  leadId    String
+  title     String
+  value     Float
+  currency  String    @default("PKR")
+  stage     String    @default("new") // new | contacted | qualified | proposal | negotiation | won | lost
+  closeDate DateTime?
+  createdAt DateTime  @default(now())
+  lead      Lead      @relation(fields: [leadId], references: [id], onDelete: Cascade)
+}
+
+model PixelEvent {
+  id          String   @id @default(cuid())
+  eventName   String   // PageView | Lead | Purchase | ViewContent | AddToCart
+  eventId     String?
+  value        Float?
+  currency    String?
+  source      String   @default("client") // client | server
+  createdAt   DateTime @default(now())
+}

@@ -1,0 +1,6 @@
+{
+  "name": "PLAYBEAT PULSE",
+  "description": "Enterprise-grade Lead Intelligence, Lead Routing & Sales CRM for Playbeat with multi-currency PKR/USD/AED support, multi-source waterfall discovery, and Meta & WhatsApp communication center.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
