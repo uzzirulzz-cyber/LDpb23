@@ -1,0 +1,10 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "nextjs",
+  "buildCommand": "prisma generate && next build",
+  "installCommand": "bun install",
+  "regions": ["sin1"],
+  "env": {
+    "NEXTAUTH_URL": "https://playbeat.digital"
+  }
+}
