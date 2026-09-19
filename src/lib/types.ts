@@ -102,3 +102,75 @@ export interface AnalyticsData {
   scoreDistribution: { bucket: string; count: number }[];
   repLeaderboard: { id: string; name: string; leads: number; won: number; wonUsd: number; target: number; region: string | null }[];
 }
+
+// ============ OPS ============
+export interface Supplier {
+  id: string;
+  name: string;
+  contactName: string | null;
+  email: string | null;
+  phone: string | null;
+  country: string | null;
+  category: string | null; // digital | hardware | service
+  status: string; // active | inactive
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Shipment {
+  id: string;
+  orderId: string | null;
+  trackingNumber: string | null;
+  carrier: string | null;
+  status: string; // pending | shipped | in_transit | delivered | returned
+  shippedAt: string | null;
+  deliveredAt: string | null;
+  address: string | null;
+  country: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface InventoryItem {
+  id: string;
+  sku: string;
+  name: string;
+  productId: string | null;
+  stock: number;
+  reserved: number;
+  reorderLevel: number;
+  location: string;
+  cost: number;
+  currency: string;
+  createdAt: string;
+  updatedAt: string;
+  product?: { id: string; name: string; slug: string; digital: boolean; active: boolean } | null;
+}
+
+// ============ EMP ============
+export interface Employee {
+  id: string;
+  name: string;
+  email: string;
+  phone: string | null;
+  role: string; // admin | manager | sales | ops | support | staff
+  department: string | null; // sales | ops | support | finance | tech
+  status: string; // active | on_leave | inactive
+  salary: number;
+  currency: string;
+  hireDate: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Attendance {
+  id: string;
+  employeeId: string;
+  date: string;
+  checkIn: string | null;
+  checkOut: string | null;
+  status: string; // present | absent | late | half_day | leave
+  notes: string | null;
+  createdAt: string;
+  employee?: Pick<Employee, "id" | "name" | "email" | "department" | "role">;
+}

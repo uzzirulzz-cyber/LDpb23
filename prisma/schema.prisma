@@ -532,6 +532,63 @@ model HomepageBlock {
   updatedAt DateTime @updatedAt
 }
 
+// ============ OPS ============
+model Supplier {
+  id          String   @id @default(cuid())
+  name        String
+  contactName String?
+  email       String?
+  phone       String?
+  country     String?
+  category    String?  // digital | hardware | service
+  status      String   @default("active")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Shipment {
+  id             String    @id @default(cuid())
+  orderId        String?
+  trackingNumber String?
+  carrier        String?
+  status         String    @default("pending") // pending | shipped | in_transit | delivered | returned
+  shippedAt      DateTime?
+  deliveredAt    DateTime?
+  address        String?
+  country        String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+}
+
+// ============ EMP ============
+model Employee {
+  id         String      @id @default(cuid())
+  name       String
+  email      String      @unique
+  phone      String?
+  role       String      @default("staff") // admin | manager | sales | ops | support | staff
+  department String?     // sales | ops | support | finance | tech
+  status     String      @default("active") // active | on_leave | inactive
+  salary     Float       @default(0)
+  currency   String      @default("PKR")
+  hireDate   DateTime?
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+  attendance Attendance[]
+}
+
+model Attendance {
+  id         String   @id @default(cuid())
+  employeeId String
+  date       DateTime
+  checkIn    DateTime?
+  checkOut   DateTime?
+  status     String   @default("present") // present | absent | late | half_day | leave
+  notes      String?
+  createdAt  DateTime @default(now())
+  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+}
+
 // ============ PIXEL ============
 model PixelEvent {
   id         String   @id @default(cuid())

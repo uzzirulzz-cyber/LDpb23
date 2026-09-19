@@ -13,10 +13,8 @@ import {
   CheckCircle2,
   Loader2,
   Home as HomeIcon,
+  Truck,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { StorefrontLayout } from "./layout";
 import {
@@ -77,7 +75,6 @@ export function ProductDetail({ slug }: { slug: string }) {
     };
   }, [slug]);
 
-  // Related products (same category, limit 4)
   useEffect(() => {
     if (!product) return;
     let cancelled = false;
@@ -92,7 +89,7 @@ export function ProductDetail({ slug }: { slug: string }) {
         const list = (json.data ?? []).filter((p) => p.id !== product.id).slice(0, 4);
         setRelated(list);
       } catch {
-        // ignore — related is best-effort
+        // best-effort
       }
     })();
     return () => {
@@ -153,69 +150,93 @@ export function ProductDetail({ slug }: { slug: string }) {
     setBuying(false);
   };
 
+  const meta = product ? categoryMeta(product.category) : null;
+
   return (
     <StorefrontLayout>
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        <nav className="mb-5 flex items-center gap-1.5 text-xs text-muted-foreground">
-          <Link href="/" className="flex items-center gap-1 hover:text-foreground"><HomeIcon className="size-3" /> Home</Link>
+        <nav className="mb-5 flex flex-wrap items-center gap-1.5 text-xs text-slate-400">
+          <Link href="/" className="flex items-center gap-1 hover:text-amber-300">
+            <HomeIcon className="size-3" /> Home
+          </Link>
           <span>/</span>
-          <Link href="/products" className="hover:text-foreground">Products</Link>
-          {product && (
+          <Link href="/products" className="hover:text-amber-300">Products</Link>
+          {product && meta && (
             <>
               <span>/</span>
-              <Link href={`/products?category=${encodeURIComponent(product.category)}`} className="hover:text-foreground">
-                {categoryMeta(product.category).label}
+              <Link
+                href={`/products?category=${encodeURIComponent(product.category)}`}
+                className="hover:text-amber-300"
+              >
+                {meta.label}
               </Link>
               <span>/</span>
-              <span className="truncate text-foreground">{product.name}</span>
+              <span className="truncate text-slate-200">{product.name}</span>
             </>
           )}
         </nav>
 
-        <Button asChild variant="ghost" size="sm" className="mb-5">
-          <Link href="/products"><ArrowLeft className="size-4" /> Back to products</Link>
-        </Button>
+        <Link
+          href="/products"
+          className="mb-5 inline-flex h-9 items-center gap-2 rounded-md border border-white/10 bg-white/5 px-3 text-xs font-semibold text-slate-300 transition-colors hover:bg-white/10 hover:text-amber-300"
+        >
+          <ArrowLeft className="size-4" /> Back to products
+        </Link>
 
         {loading ? (
           <DetailSkeleton />
-        ) : notFound || !product ? (
-          <div className="rounded-xl border border-dashed border-border/60 bg-accent/20 p-12 text-center">
-            <p className="text-lg font-semibold">Product not found</p>
-            <p className="mt-1 text-sm text-muted-foreground">This item may have been removed or is no longer available.</p>
-            <Button asChild className="mt-4">
-              <Link href="/products">Browse all products</Link>
-            </Button>
+        ) : notFound || !product || !meta ? (
+          <div className="rounded-2xl border border-dashed border-white/10 bg-white/[0.02] p-12 text-center">
+            <p className="text-lg font-semibold text-white">Product not found</p>
+            <p className="mt-1 text-sm text-slate-400">
+              This item may have been removed or is no longer available.
+            </p>
+            <Link
+              href="/products"
+              className="btn-gold-gradient mt-4 inline-flex h-10 items-center justify-center gap-2 rounded-lg px-4 text-sm font-semibold"
+            >
+              Browse all products
+            </Link>
           </div>
         ) : (
           <>
             <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
               {/* LEFT: image gallery */}
               <div className="space-y-3">
-                <div className="relative aspect-square overflow-hidden rounded-2xl border border-border/60 bg-card gradient-card premium-shadow">
+                <div className="glass-navy-card relative aspect-square overflow-hidden p-3">
                   {imageList.length > 0 ? (
                      
                     <img
                       src={imageList[activeImage] ?? imageList[0]}
                       alt={product.name}
-                      className="size-full object-cover"
+                      className="size-full rounded-xl object-cover"
                     />
                   ) : (
-                    <ProductImage product={product} />
+                    <ProductImage product={product} className="rounded-xl" />
                   )}
-                  <div className="absolute left-3 top-3 flex gap-2">
-                    <Badge variant="secondary" className="glass border-border/60">
-                      {categoryMeta(product.category).label}
-                    </Badge>
-                    <Badge
-                      variant="outline"
-                      className={`glass border-border/60 ${
+                  <div className="absolute left-5 top-5 flex flex-col gap-2">
+                    <span
+                      className={`inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide backdrop-blur-sm ${meta.chip}`}
+                    >
+                      <meta.icon className="size-3" /> {meta.label}
+                    </span>
+                    <span
+                      className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide backdrop-blur-sm ${
                         product.digital
-                          ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
-                          : "bg-blue-500/10 text-blue-700 dark:text-blue-400"
+                          ? "bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-500/30"
+                          : "bg-cyan-500/15 text-cyan-300 ring-1 ring-cyan-500/30"
                       }`}
                     >
-                      {product.digital ? "Digital" : "Physical"}
-                    </Badge>
+                      {product.digital ? (
+                        <>
+                          <Zap className="size-3" /> Digital
+                        </>
+                      ) : (
+                        <>
+                          <Truck className="size-3" /> Physical
+                        </>
+                      )}
+                    </span>
                   </div>
                 </div>
                 {imageList.length > 1 && (
@@ -225,11 +246,17 @@ export function ProductDetail({ slug }: { slug: string }) {
                         key={src + i}
                         onClick={() => setActiveImage(i)}
                         className={`aspect-square overflow-hidden rounded-lg border-2 transition-colors ${
-                          i === activeImage ? "border-primary" : "border-border/60 hover:border-primary/50"
+                          i === activeImage
+                            ? "border-amber-400"
+                            : "border-white/10 hover:border-amber-400/50"
                         }`}
                       >
                         { }
-                        <img src={src} alt={`${product.name} ${i + 1}`} className="size-full object-cover" />
+                        <img
+                          src={src}
+                          alt={`${product.name} ${i + 1}`}
+                          className="size-full object-cover"
+                        />
                       </button>
                     ))}
                   </div>
@@ -239,110 +266,101 @@ export function ProductDetail({ slug }: { slug: string }) {
               {/* RIGHT: details */}
               <div className="space-y-5">
                 <div>
-                  <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">{product.name}</h1>
+                  <h1 className="text-2xl font-bold tracking-tight text-white sm:text-3xl">
+                    {product.name}
+                  </h1>
                   <div className="mt-2 flex items-center gap-3">
                     <RatingStars rating={product.rating} />
                     {product.subcategory && (
-                      <span className="text-xs text-muted-foreground">· {product.subcategory}</span>
+                      <span className="text-xs text-slate-400">· {product.subcategory}</span>
                     )}
                   </div>
                 </div>
 
                 <div className="flex items-end gap-3">
-                  <p className="text-3xl font-extrabold tracking-tight">{priceOf(product)}</p>
-                  <span className="mb-1 inline-flex items-center gap-1 text-xs font-medium text-emerald-600 dark:text-emerald-400">
+                  <p className="text-3xl font-extrabold tracking-tight text-amber-300">
+                    {priceOf(product)}
+                  </p>
+                  <span className="mb-1 inline-flex items-center gap-1 text-xs font-medium text-emerald-300">
                     <CheckCircle2 className="size-3.5" />
                     {product.digital ? "∞ Digital · Instant delivery" : `In stock: ${product.stock}`}
                   </span>
                 </div>
 
                 {product.deliveryType && (
-                  <Badge variant="outline" className="gap-1.5 border-primary/30 bg-primary/5 text-primary">
+                  <span className="inline-flex items-center gap-1.5 rounded-md border border-amber-400/30 bg-amber-400/[0.06] px-3 py-1 text-xs font-medium text-amber-300">
                     <Zap className="size-3.5" /> {product.deliveryType}
-                  </Badge>
+                  </span>
                 )}
 
                 {product.description && (
-                  <div className="prose prose-sm max-w-none text-sm text-muted-foreground">
+                  <div className="rounded-xl border border-white/[0.07] bg-white/[0.02] p-4 text-sm leading-relaxed text-slate-300">
                     <p className="whitespace-pre-line">{product.description}</p>
                   </div>
                 )}
 
                 {/* Quantity selector */}
                 <div className="flex items-center gap-4">
-                  <label className="text-sm font-medium">Quantity</label>
-                  <div className="flex items-center rounded-lg border border-border/60">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-9 w-9 rounded-r-none"
+                  <label className="text-sm font-medium text-slate-300">Quantity</label>
+                  <div className="flex items-center rounded-lg border border-white/10 bg-white/[0.03]">
+                    <button
+                      className="inline-flex h-9 w-9 items-center justify-center rounded-l-md text-slate-300 hover:bg-white/5 hover:text-amber-300 disabled:opacity-40"
                       onClick={() => setQty((q) => Math.max(1, q - 1))}
                       disabled={qty <= 1}
                       aria-label="Decrease quantity"
                     >
                       <Minus className="size-4" />
-                    </Button>
-                    <span className="w-12 text-center text-sm font-semibold tabular-nums">{qty}</span>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-9 w-9 rounded-l-none"
+                    </button>
+                    <span className="w-12 text-center text-sm font-semibold tabular-nums text-white">
+                      {qty}
+                    </span>
+                    <button
+                      className="inline-flex h-9 w-9 items-center justify-center rounded-r-md text-slate-300 hover:bg-white/5 hover:text-amber-300"
                       onClick={() => setQty((q) => q + 1)}
                       aria-label="Increase quantity"
                     >
                       <Plus className="size-4" />
-                    </Button>
+                    </button>
                   </div>
                 </div>
 
                 {/* CTAs */}
                 <div className="flex flex-col gap-3 sm:flex-row">
-                  <Button
-                    size="lg"
-                    variant="outline"
-                    className="flex-1 premium-shadow"
+                  <button
                     onClick={onAdd}
                     disabled={adding}
+                    className="btn-gold-gradient sheen-effect inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-lg text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-70"
                   >
                     {adding ? <Loader2 className="size-4 animate-spin" /> : <ShoppingCart className="size-4" />}
                     {adding ? "Adding…" : "Add to Cart"}
-                  </Button>
-                  <Button
-                    size="lg"
-                    className="flex-1 premium-shadow"
+                  </button>
+                  <button
                     onClick={onBuyNow}
                     disabled={buying}
+                    className="btn-silver-metallic inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-lg text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-70"
                   >
                     {buying ? <Loader2 className="size-4 animate-spin" /> : <Zap className="size-4" />}
                     {buying ? "Redirecting…" : "Buy Now"}
-                  </Button>
+                  </button>
                 </div>
 
                 {/* Trust strip */}
-                <div className="grid grid-cols-3 gap-3 border-t border-border/60 pt-5">
-                  <div className="flex flex-col items-center gap-1 text-center">
-                    <Zap className="size-5 text-primary" />
-                    <p className="text-[11px] font-medium">Instant</p>
-                  </div>
-                  <div className="flex flex-col items-center gap-1 text-center">
-                    <ShieldCheck className="size-5 text-primary" />
-                    <p className="text-[11px] font-medium">Verified</p>
-                  </div>
-                  <div className="flex flex-col items-center gap-1 text-center">
-                    <CheckCircle2 className="size-5 text-primary" />
-                    <p className="text-[11px] font-medium">Guaranteed</p>
-                  </div>
+                <div className="grid grid-cols-3 gap-3 border-t border-white/5 pt-5">
+                  <Trust icon={<Zap className="size-5" />} label="Instant" />
+                  <Trust icon={<ShieldCheck className="size-5" />} label="Verified" />
+                  <Trust icon={<CheckCircle2 className="size-5" />} label="Guaranteed" />
                 </div>
 
-                {/* SKU */}
-                <p className="text-xs text-muted-foreground">SKU: {product.sku}</p>
+                <p className="text-xs text-slate-500">SKU: {product.sku}</p>
               </div>
             </div>
 
             {/* ============ RELATED ============ */}
             {related.length > 0 && (
               <section className="mt-16">
-                <h2 className="mb-5 text-xl font-bold tracking-tight">Related products</h2>
+                <h2 className="mb-5 text-xl font-bold tracking-tight text-white">
+                  Related products
+                </h2>
                 <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
                   {related.map((p) => (
                     <ProductCard key={p.id} product={p} />
@@ -357,17 +375,26 @@ export function ProductDetail({ slug }: { slug: string }) {
   );
 }
 
+function Trust({ icon, label }: { icon: React.ReactNode; label: string }) {
+  return (
+    <div className="flex flex-col items-center gap-1 text-center">
+      <span className="text-amber-300">{icon}</span>
+      <p className="text-[11px] font-medium text-slate-300">{label}</p>
+    </div>
+  );
+}
+
 function DetailSkeleton() {
   return (
     <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
-      <Skeleton className="aspect-square w-full rounded-2xl" />
+      <div className="glass-navy-card aspect-square animate-pulse" />
       <div className="space-y-4">
-        <Skeleton className="h-8 w-3/4" />
-        <Skeleton className="h-4 w-1/3" />
-        <Skeleton className="h-10 w-1/2" />
-        <Skeleton className="h-24 w-full" />
-        <Skeleton className="h-12 w-full" />
-        <Skeleton className="h-12 w-full" />
+        <div className="h-8 w-3/4 animate-pulse rounded bg-white/[0.06]" />
+        <div className="h-4 w-1/3 animate-pulse rounded bg-white/[0.04]" />
+        <div className="h-10 w-1/2 animate-pulse rounded bg-white/[0.06]" />
+        <div className="h-24 w-full animate-pulse rounded bg-white/[0.04]" />
+        <div className="h-12 w-full animate-pulse rounded bg-white/[0.05]" />
+        <div className="h-12 w-full animate-pulse rounded bg-white/[0.05]" />
       </div>
     </div>
   );

@@ -15,10 +15,8 @@ import {
   Home as HomeIcon,
   ShoppingBag,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -26,7 +24,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { StorefrontLayout } from "./layout";
 import { categoryMeta, priceOf, type StoreProduct } from "./product-card";
@@ -101,7 +98,6 @@ export function CheckoutView() {
   const [submitting, setSubmitting] = useState(false);
   const [order, setOrder] = useState<Order | null>(null);
 
-  // Load cart
   const refresh = useCallback(async () => {
     if (!customerId) return;
     try {
@@ -122,7 +118,6 @@ export function CheckoutView() {
     void refresh();
   }, [refresh]);
 
-  // Prefill from localStorage
   useEffect(() => {
     try {
       const raw = window.localStorage.getItem(LS_PROFILE_KEY);
@@ -135,7 +130,6 @@ export function CheckoutView() {
     }
   }, []);
 
-  // Redirect to /cart if empty (after load)
   useEffect(() => {
     if (!loading && cart && cart.items.length === 0 && !order) {
       router.replace("/cart");
@@ -166,7 +160,6 @@ export function CheckoutView() {
 
     setSubmitting(true);
     try {
-      // Save profile for next time
       try {
         window.localStorage.setItem(LS_PROFILE_KEY, JSON.stringify(form));
       } catch {
@@ -191,15 +184,17 @@ export function CheckoutView() {
       }
       const ord = json.data!;
       setOrder(ord);
-      // Refresh cart UI + header badge
       window.dispatchEvent(new Event("playbeat-cart-updated"));
-      // Fire Meta Pixel Purchase (client-side; server-side already deduped via eventID)
-      trackMetaEvent("Purchase", {
-        value: ord.total,
-        currency: ord.currency ?? "PKR",
-        content_type: "product",
-        num_items: ord.items.length,
-      }, `purchase_${ord.id}`);
+      trackMetaEvent(
+        "Purchase",
+        {
+          value: ord.total,
+          currency: ord.currency ?? "PKR",
+          content_type: "product",
+          num_items: ord.items.length,
+        },
+        `purchase_${ord.id}`
+      );
       toast.success("Order placed!", { description: ord.orderNumber });
     } catch (e) {
       toast.error("Checkout failed", {
@@ -222,87 +217,140 @@ export function CheckoutView() {
   return (
     <StorefrontLayout>
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        <nav className="mb-5 flex items-center gap-1.5 text-xs text-muted-foreground">
-          <Link href="/" className="flex items-center gap-1 hover:text-foreground"><HomeIcon className="size-3" /> Home</Link>
+        <nav className="mb-5 flex items-center gap-1.5 text-xs text-slate-400">
+          <Link href="/" className="flex items-center gap-1 hover:text-amber-300">
+            <HomeIcon className="size-3" /> Home
+          </Link>
           <span>/</span>
-          <Link href="/cart" className="hover:text-foreground">Cart</Link>
+          <Link href="/cart" className="hover:text-amber-300">Cart</Link>
           <span>/</span>
-          <span className="text-foreground">Checkout</span>
+          <span className="text-slate-200">Checkout</span>
         </nav>
 
         {order ? (
           <SuccessScreen order={order} onCopy={copyKey} />
         ) : loading ? (
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_360px]">
-            <Skeleton className="h-96 w-full rounded-xl" />
-            <Skeleton className="h-64 w-full rounded-xl" />
+            <div className="glass-navy-panel h-96 animate-pulse" />
+            <div className="glass-navy-panel h-64 animate-pulse" />
           </div>
         ) : items.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-border/60 bg-accent/20 p-16 text-center">
-            <p className="text-lg font-semibold">Your cart is empty</p>
-            <p className="mt-1 text-sm text-muted-foreground">Add some products before checking out.</p>
-            <Button asChild className="mt-4">
-              <Link href="/products">Browse products</Link>
-            </Button>
+          <div className="rounded-2xl border border-dashed border-white/10 bg-white/[0.02] p-16 text-center">
+            <p className="text-lg font-semibold text-white">Your cart is empty</p>
+            <p className="mt-1 text-sm text-slate-400">Add some products before checking out.</p>
+            <Link
+              href="/products"
+              className="btn-gold-gradient mt-4 inline-flex h-10 items-center justify-center gap-2 rounded-lg px-4 text-sm font-semibold"
+            >
+              Browse products
+            </Link>
           </div>
         ) : (
           <>
             <div className="mb-6 flex items-center justify-between">
               <div>
-                <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Checkout</h1>
-                <p className="text-sm text-muted-foreground">Complete your order — keys delivered instantly.</p>
+                <h1 className="text-2xl font-bold tracking-tight text-white sm:text-3xl">Checkout</h1>
+                <p className="text-sm text-slate-400">Complete your order — keys delivered instantly.</p>
               </div>
-              <Button asChild variant="ghost" size="sm">
-                <Link href="/cart"><ArrowLeft className="size-4" /> Back to cart</Link>
-              </Button>
+              <Link
+                href="/cart"
+                className="inline-flex h-9 items-center gap-2 rounded-md border border-white/10 bg-white/5 px-3 text-xs font-semibold text-slate-300 transition-colors hover:bg-white/10 hover:text-amber-300"
+              >
+                <ArrowLeft className="size-4" /> Back to cart
+              </Link>
             </div>
 
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_360px]">
               {/* FORM */}
               <div className="space-y-6">
-                <section className="rounded-xl border border-border/60 bg-card p-6 gradient-card">
-                  <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold">
-                    <span className="flex size-6 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">1</span>
+                <section className="glass-navy-panel p-6">
+                  <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-white">
+                    <span className="flex size-6 items-center justify-center rounded-full bg-amber-400 text-xs font-bold text-[#070B19]">1</span>
                     Contact &amp; Shipping
                   </h2>
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <Field label="Full name" required>
-                      <Input value={form.name} onChange={(e) => setField("name", e.target.value)} placeholder="Ali Khan" autoComplete="name" />
+                      <Input
+                        value={form.name}
+                        onChange={(e) => setField("name", e.target.value)}
+                        placeholder="Ali Khan"
+                        autoComplete="name"
+                        className="border-white/10 bg-white/[0.04] text-slate-200 placeholder:text-slate-500 focus-visible:border-amber-400/50 focus-visible:ring-amber-400/20"
+                      />
                     </Field>
                     <Field label="Email" required hint="License keys are emailed here.">
-                      <Input type="email" value={form.email} onChange={(e) => setField("email", e.target.value)} placeholder="ali@example.com" autoComplete="email" />
+                      <Input
+                        type="email"
+                        value={form.email}
+                        onChange={(e) => setField("email", e.target.value)}
+                        placeholder="ali@example.com"
+                        autoComplete="email"
+                        className="border-white/10 bg-white/[0.04] text-slate-200 placeholder:text-slate-500 focus-visible:border-amber-400/50 focus-visible:ring-amber-400/20"
+                      />
                     </Field>
                     <Field label="Phone">
-                      <Input value={form.phone} onChange={(e) => setField("phone", e.target.value)} placeholder="+92 300 0000000" autoComplete="tel" />
+                      <Input
+                        value={form.phone}
+                        onChange={(e) => setField("phone", e.target.value)}
+                        placeholder="+92 300 0000000"
+                        autoComplete="tel"
+                        className="border-white/10 bg-white/[0.04] text-slate-200 placeholder:text-slate-500 focus-visible:border-amber-400/50 focus-visible:ring-amber-400/20"
+                      />
                     </Field>
                     <Field label="Country">
-                      <Input value={form.country} onChange={(e) => setField("country", e.target.value)} placeholder="Pakistan" autoComplete="country-name" />
+                      <Input
+                        value={form.country}
+                        onChange={(e) => setField("country", e.target.value)}
+                        placeholder="Pakistan"
+                        autoComplete="country-name"
+                        className="border-white/10 bg-white/[0.04] text-slate-200 placeholder:text-slate-500 focus-visible:border-amber-400/50 focus-visible:ring-amber-400/20"
+                      />
                     </Field>
                     <Field label="City" required>
-                      <Input value={form.city} onChange={(e) => setField("city", e.target.value)} placeholder="Karachi" autoComplete="address-level2" />
+                      <Input
+                        value={form.city}
+                        onChange={(e) => setField("city", e.target.value)}
+                        placeholder="Karachi"
+                        autoComplete="address-level2"
+                        className="border-white/10 bg-white/[0.04] text-slate-200 placeholder:text-slate-500 focus-visible:border-amber-400/50 focus-visible:ring-amber-400/20"
+                      />
                     </Field>
                     <Field label="Address" required className="sm:col-span-2">
-                      <Input value={form.address} onChange={(e) => setField("address", e.target.value)} placeholder="House #, street, area" autoComplete="street-address" />
+                      <Input
+                        value={form.address}
+                        onChange={(e) => setField("address", e.target.value)}
+                        placeholder="House #, street, area"
+                        autoComplete="street-address"
+                        className="border-white/10 bg-white/[0.04] text-slate-200 placeholder:text-slate-500 focus-visible:border-amber-400/50 focus-visible:ring-amber-400/20"
+                      />
                     </Field>
                   </div>
                 </section>
 
-                <section className="rounded-xl border border-border/60 bg-card p-6 gradient-card">
-                  <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold">
-                    <span className="flex size-6 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">2</span>
+                <section className="glass-navy-panel p-6">
+                  <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-white">
+                    <span className="flex size-6 items-center justify-center rounded-full bg-amber-400 text-xs font-bold text-[#070B19]">2</span>
                     Payment Method
                   </h2>
                   <Field label="How would you like to pay?">
                     <Select value={form.paymentMethod} onValueChange={(v) => setField("paymentMethod", v)}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
+                      <SelectTrigger className="border-white/10 bg-white/[0.04] text-slate-200 focus:ring-amber-400/20">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="border-white/10 bg-[#0A101F] text-slate-200">
                         {PAYMENT_METHODS.map((m) => (
-                          <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
+                          <SelectItem
+                            key={m.value}
+                            value={m.value}
+                            className="focus:bg-amber-400/10 focus:text-amber-300"
+                          >
+                            {m.label}
+                          </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                   </Field>
-                  <div className="mt-4 flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-800 dark:text-amber-300">
+                  <div className="mt-4 flex items-start gap-2 rounded-lg border border-amber-400/30 bg-amber-400/[0.06] p-3 text-xs text-amber-200">
                     <Lock className="mt-0.5 size-3.5 shrink-0" />
                     <p>
                       <strong>Honest note:</strong> No live payment gateway is wired yet. Your order will be
@@ -314,57 +362,57 @@ export function CheckoutView() {
               </div>
 
               {/* ORDER SUMMARY */}
-              <aside className="lg:sticky lg:top-20 lg:self-start space-y-4">
-                <div className="rounded-xl border border-border/60 bg-card p-6 gradient-card premium-shadow">
-                  <h2 className="text-lg font-semibold">Order Summary</h2>
-                  <div className="mt-4 max-h-72 space-y-3 overflow-y-auto scroll-thin pr-1">
+              <aside className="space-y-4 lg:sticky lg:top-20 lg:self-start">
+                <div className="glass-navy-panel p-6">
+                  <h2 className="text-lg font-semibold text-white">Order Summary</h2>
+                  <div className="mt-4 max-h-72 space-y-3 overflow-y-auto storefront-scroll pr-1">
                     {items.map((item) => {
                       const meta = categoryMeta(item.product.category);
                       const Icon = meta.icon;
                       return (
                         <div key={item.id} className="flex items-center gap-3 text-sm">
-                          <div className={`flex size-10 shrink-0 items-center justify-center rounded-md bg-gradient-to-br ${meta.gradient} text-white`}>
+                          <div
+                            className={`flex size-10 shrink-0 items-center justify-center rounded-md bg-gradient-to-br ${meta.medallion} text-white ring-1 ring-white/10`}
+                          >
                             <Icon className="size-4" />
                           </div>
                           <div className="min-w-0 flex-1">
-                            <p className="line-clamp-1 text-xs font-medium">{item.product.name}</p>
-                            <p className="text-[11px] text-muted-foreground">Qty {item.quantity} · {priceOf(item.product)}</p>
+                            <p className="line-clamp-1 text-xs font-medium text-slate-200">
+                              {item.product.name}
+                            </p>
+                            <p className="text-[11px] text-slate-500">
+                              Qty {item.quantity} · {priceOf(item.product)}
+                            </p>
                           </div>
-                          <p className="text-xs font-semibold">{formatMoney(Number(item.product.price) * item.quantity, "PKR")}</p>
+                          <p className="text-xs font-semibold text-amber-300">
+                            {formatMoney(Number(item.product.price) * item.quantity, "PKR")}
+                          </p>
                         </div>
                       );
                     })}
                   </div>
-                  <div className="mt-4 space-y-2 border-t border-border/60 pt-4 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Subtotal</span>
-                      <span className="font-medium">{formatMoney(subtotal, "PKR")}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Tax</span>
-                      <span className="font-medium">{formatMoney(0, "PKR")}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Shipping</span>
-                      <span className="font-medium text-emerald-600 dark:text-emerald-400">Free</span>
-                    </div>
-                    <div className="mt-3 border-t border-border/60 pt-3">
+                  <div className="mt-4 space-y-2 border-t border-white/10 pt-4 text-sm">
+                    <Row label="Subtotal" value={formatMoney(subtotal, "PKR")} />
+                    <Row label="Tax" value={formatMoney(0, "PKR")} />
+                    <Row label="Shipping" value={<span className="text-emerald-300">Free</span>} />
+                    <div className="mt-3 border-t border-white/10 pt-3">
                       <div className="flex items-baseline justify-between">
-                        <span className="font-semibold">Total</span>
-                        <span className="text-2xl font-extrabold tracking-tight">{formatMoney(subtotal, "PKR")}</span>
+                        <span className="font-semibold text-slate-200">Total</span>
+                        <span className="text-2xl font-extrabold tracking-tight text-amber-300">
+                          {formatMoney(subtotal, "PKR")}
+                        </span>
                       </div>
                     </div>
                   </div>
-                  <Button
-                    size="lg"
-                    className="mt-5 w-full premium-shadow"
+                  <button
                     onClick={onPlaceOrder}
                     disabled={submitting}
+                    className="btn-gold-gradient sheen-effect mt-5 inline-flex h-12 w-full items-center justify-center gap-2 rounded-lg text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-70"
                   >
                     {submitting ? <Loader2 className="size-4 animate-spin" /> : <Lock className="size-4" />}
                     {submitting ? "Placing order…" : "Place Order"}
-                  </Button>
-                  <div className="mt-4 flex items-center justify-center gap-4 text-[11px] text-muted-foreground">
+                  </button>
+                  <div className="mt-4 flex items-center justify-center gap-4 text-[11px] text-slate-500">
                     <span className="flex items-center gap-1"><ShieldCheck className="size-3" /> Secure</span>
                     <span className="flex items-center gap-1"><Zap className="size-3" /> Instant</span>
                     <span className="flex items-center gap-1"><CheckCircle2 className="size-3" /> Verified</span>
@@ -394,12 +442,21 @@ function Field({
 }) {
   return (
     <div className={className}>
-      <Label className="mb-1.5 flex items-center gap-1 text-xs font-medium">
+      <Label className="mb-1.5 flex items-center gap-1 text-xs font-medium text-slate-300">
         {label}
-        {required && <span className="text-destructive">*</span>}
+        {required && <span className="text-rose-400">*</span>}
       </Label>
       {children}
-      {hint && <p className="mt-1 text-[11px] text-muted-foreground">{hint}</p>}
+      {hint && <p className="mt-1 text-[11px] text-slate-500">{hint}</p>}
+    </div>
+  );
+}
+
+function Row({ label, value }: { label: string; value: ReactNode }) {
+  return (
+    <div className="flex justify-between">
+      <span className="text-slate-400">{label}</span>
+      <span className="font-medium text-slate-200">{value}</span>
     </div>
   );
 }
@@ -414,74 +471,80 @@ function SuccessScreen({
   const hasKeys = order.items.some((i) => Array.isArray(i.licenseKeys) && i.licenseKeys.length > 0);
   return (
     <div className="mx-auto max-w-3xl">
-      <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/5 p-8 text-center premium-shadow">
-        <div className="mx-auto mb-4 flex size-16 items-center justify-center rounded-full bg-emerald-500 text-white">
+      <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/[0.06] p-8 text-center">
+        <div className="mx-auto mb-4 flex size-16 items-center justify-center rounded-full bg-emerald-500 text-white shadow-[0_0_30px_rgba(16,185,129,0.5)]">
           <CheckCircle2 className="size-8" />
         </div>
-        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Order placed!</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
+        <h1 className="text-2xl font-bold tracking-tight text-white sm:text-3xl">Order placed!</h1>
+        <p className="mt-1 text-sm text-slate-400">
           Thank you for your purchase. Your order number is below.
         </p>
-        <div className="mt-4 inline-flex items-center gap-2 rounded-lg border border-border/60 bg-card px-4 py-2">
-          <span className="text-xs text-muted-foreground">Order #</span>
-          <span className="font-mono text-sm font-bold">{order.orderNumber}</span>
+        <div className="mt-4 inline-flex items-center gap-2 rounded-lg border border-white/10 bg-[#0A101F] px-4 py-2">
+          <span className="text-xs text-slate-500">Order #</span>
+          <span className="font-mono text-sm font-bold text-amber-300">{order.orderNumber}</span>
         </div>
-        <div className="mt-2 flex items-center justify-center gap-2 text-xs">
-          <Badge variant="outline" className="capitalize">{order.status}</Badge>
-          <Badge variant="outline" className="capitalize bg-emerald-500/10 text-emerald-700 dark:text-emerald-400">
+        <div className="mt-2 flex flex-wrap items-center justify-center gap-2 text-xs">
+          <span className="rounded-md border border-white/10 bg-white/[0.04] px-2 py-0.5 capitalize text-slate-300">
+            {order.status}
+          </span>
+          <span className="rounded-md border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 capitalize text-emerald-300">
             {order.paymentStatus}
-          </Badge>
+          </span>
           {order.paymentMethod && (
-            <Badge variant="outline" className="capitalize">{order.paymentMethod.replace("-", " ")}</Badge>
+            <span className="rounded-md border border-white/10 bg-white/[0.04] px-2 py-0.5 capitalize text-slate-300">
+              {order.paymentMethod.replace("-", " ")}
+            </span>
           )}
         </div>
       </div>
 
-      {/* License keys */}
-      <section className="mt-6 rounded-xl border border-border/60 bg-card p-6 gradient-card">
-        <h2 className="flex items-center gap-2 text-lg font-semibold">
-          <Zap className="size-5 text-primary" /> License Keys &amp; Delivery
+      <section className="glass-navy-panel mt-6 p-6">
+        <h2 className="flex items-center gap-2 text-lg font-semibold text-white">
+          <Zap className="size-5 text-amber-300" /> License Keys &amp; Delivery
         </h2>
         {hasKeys ? (
-          <p className="mt-1 text-xs text-muted-foreground">
+          <p className="mt-1 text-xs text-slate-400">
             Your digital license keys are below. A copy has been emailed to you. Keep these safe — they are
             redeemable once.
           </p>
         ) : (
-          <p className="mt-1 text-xs text-muted-foreground">
+          <p className="mt-1 text-xs text-slate-400">
             Your order contains physical items. Our team will contact you shortly to arrange delivery.
           </p>
         )}
 
         <div className="mt-4 space-y-4">
           {order.items.map((item) => (
-            <div key={item.id} className="rounded-lg border border-border/60 p-4">
+            <div
+              key={item.id}
+              className="rounded-lg border border-white/[0.07] bg-white/[0.02] p-4"
+            >
               <div className="flex items-start justify-between gap-2">
                 <div>
-                  <p className="text-sm font-semibold">{item.name}</p>
-                  <p className="text-[11px] text-muted-foreground">
+                  <p className="text-sm font-semibold text-white">{item.name}</p>
+                  <p className="text-[11px] text-slate-500">
                     Qty {item.quantity} · {formatMoney(item.price * item.quantity, "PKR")} · {item.deliveryType}
                   </p>
                 </div>
-                <Badge variant="outline" className="text-[10px]">{item.deliveryType}</Badge>
+                <span className="rounded-md border border-white/10 bg-white/[0.04] px-2 py-0.5 text-[10px] text-slate-300">
+                  {item.deliveryType}
+                </span>
               </div>
               {Array.isArray(item.licenseKeys) && item.licenseKeys.length > 0 && (
                 <div className="mt-3 space-y-1.5">
                   {item.licenseKeys.map((key, idx) => (
                     <div
                       key={key + idx}
-                      className="flex items-center justify-between gap-2 rounded-md border border-border/60 bg-background/60 px-3 py-2"
+                      className="flex items-center justify-between gap-2 rounded-md border border-white/[0.07] bg-[#070B19] px-3 py-2"
                     >
-                      <code className="font-mono text-xs text-foreground break-all">{key}</code>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="size-7 shrink-0"
+                      <code className="font-mono text-xs text-amber-200 break-all">{key}</code>
+                      <button
+                        className="inline-flex size-7 shrink-0 items-center justify-center rounded-md text-slate-400 hover:bg-amber-400/10 hover:text-amber-300"
                         onClick={() => onCopy(key)}
                         aria-label="Copy key"
                       >
                         <Copy className="size-3.5" />
-                      </Button>
+                      </button>
                     </div>
                   ))}
                 </div>
@@ -491,18 +554,24 @@ function SuccessScreen({
         </div>
       </section>
 
-      <div className="mt-6 flex flex-col items-center justify-between gap-3 rounded-xl border border-border/60 bg-card p-5 sm:flex-row gradient-card">
+      <div className="glass-navy-panel mt-6 flex flex-col items-center justify-between gap-3 p-5 sm:flex-row">
         <div className="text-sm">
-          <p className="font-semibold">Order total: {formatMoney(order.total, "PKR")}</p>
-          <p className="text-xs text-muted-foreground">View this order anytime in your account.</p>
+          <p className="font-semibold text-white">Order total: {formatMoney(order.total, "PKR")}</p>
+          <p className="text-xs text-slate-400">View this order anytime in your account.</p>
         </div>
         <div className="flex gap-2">
-          <Button asChild variant="outline">
-            <Link href="/products"><ShoppingBag className="size-4" /> Keep shopping</Link>
-          </Button>
-          <Button asChild>
-            <Link href="/account">View order history <ArrowRight className="size-4" /></Link>
-          </Button>
+          <Link
+            href="/products"
+            className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-white/10 bg-white/[0.04] px-4 text-sm font-medium text-slate-300 hover:bg-white/10 hover:text-amber-300"
+          >
+            <ShoppingBag className="size-4" /> Keep shopping
+          </Link>
+          <Link
+            href="/account"
+            className="btn-gold-gradient inline-flex h-10 items-center justify-center gap-2 rounded-md px-4 text-sm font-semibold"
+          >
+            View order history <ArrowRight className="size-4" />
+          </Link>
         </div>
       </div>
     </div>

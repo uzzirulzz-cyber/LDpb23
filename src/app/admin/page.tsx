@@ -24,6 +24,18 @@ const IntegrationsSection = dynamic(() => import("@/components/crm/sections/inte
 const AuditSection = dynamic(() => import("@/components/crm/sections/audit").then((m) => m.AuditSection), { ssr: false });
 const SettingsSection = dynamic(() => import("@/components/crm/sections/settings").then((m) => m.SettingsSection), { ssr: false });
 
+// OPS sections
+const OpsDashboardSection = dynamic(() => import("@/components/crm/sections/ops-dashboard").then((m) => m.OpsDashboardSection), { ssr: false });
+const OpsFulfillmentSection = dynamic(() => import("@/components/crm/sections/ops-fulfillment").then((m) => m.OpsFulfillmentSection), { ssr: false });
+const OpsShippingSection = dynamic(() => import("@/components/crm/sections/ops-shipping").then((m) => m.OpsShippingSection), { ssr: false });
+const OpsSuppliersSection = dynamic(() => import("@/components/crm/sections/ops-suppliers").then((m) => m.OpsSuppliersSection), { ssr: false });
+
+// EMP sections
+const EmpDirectorySection = dynamic(() => import("@/components/crm/sections/emp-directory").then((m) => m.EmpDirectorySection), { ssr: false });
+const EmpAttendanceSection = dynamic(() => import("@/components/crm/sections/emp-attendance").then((m) => m.EmpAttendanceSection), { ssr: false });
+const EmpPayrollSection = dynamic(() => import("@/components/crm/sections/emp-payroll").then((m) => m.EmpPayrollSection), { ssr: false });
+const EmpPerformanceSection = dynamic(() => import("@/components/crm/sections/emp-performance").then((m) => m.EmpPerformanceSection), { ssr: false });
+
 export default function CrmPage() {
   const section = useDashboard((s) => s.section);
   return (
@@ -52,6 +64,16 @@ export default function CrmPage() {
             {section === "integrations" && <IntegrationsSection />}
             {section === "audit" && <AuditSection />}
             {section === "settings" && <SettingsSection />}
+            {/* OPS */}
+            {section === "ops-dashboard" && <OpsDashboardSection />}
+            {section === "ops-fulfillment" && <OpsFulfillmentSection />}
+            {section === "ops-shipping" && <OpsShippingSection />}
+            {section === "ops-suppliers" && <OpsSuppliersSection />}
+            {/* EMP */}
+            {section === "emp-directory" && <EmpDirectorySection />}
+            {section === "emp-attendance" && <EmpAttendanceSection />}
+            {section === "emp-payroll" && <EmpPayrollSection />}
+            {section === "emp-performance" && <EmpPerformanceSection />}
           </div>
         </main>
         <CrmFooter />

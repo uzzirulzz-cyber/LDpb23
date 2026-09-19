@@ -189,3 +189,129 @@
     0 12px 32px -8px oklch(0.45 0.18 256 / 0.28),
     0 0 0 1px oklch(0.62 0.2 256 / 0.08);
 }
+
+/* =========================================================
+   PLAYBEAT.DIGITAL STOREFRONT — IZOKO DESIGN SYSTEM
+   Deep Navy + Gold + Silver futuristic aesthetic
+   ========================================================= */
+
+:root {
+  --navy-deep: #050814;
+  --navy-surface: #0a1128;
+  --navy-card: #0d1738;
+  --gold-primary: #FACC15;
+  --gold-glow: rgba(250, 204, 21, 0.35);
+}
+
+/* Deep Navy Radiant Background */
+.bg-midnight-canvas {
+  background: radial-gradient(ellipse at 50% -20%, #122254 0%, #081026 40%, #040711 100%);
+  background-attachment: fixed;
+}
+
+/* Glassmorphic Navy Surfaces */
+.glass-navy-panel {
+  background: linear-gradient(135deg, rgba(13, 23, 56, 0.85) 0%, rgba(8, 14, 36, 0.92) 100%);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(226, 232, 240, 0.12);
+  border-radius: 18px;
+}
+
+.glass-navy-card {
+  background: linear-gradient(145deg, rgba(15, 27, 66, 0.7) 0%, rgba(9, 16, 40, 0.85) 100%);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(226, 232, 240, 0.12);
+  border-radius: 18px;
+  position: relative;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.glass-navy-card:hover {
+  border-color: rgba(250, 204, 21, 0.35);
+  box-shadow: 0 16px 40px -12px rgba(0, 0, 0, 0.7), 0 0 30px -5px rgba(56, 189, 248, 0.18), 0 0 1px 1px rgba(250, 204, 21, 0.2);
+}
+
+/* Gold CTA Buttons */
+.btn-gold-gradient {
+  background: linear-gradient(135deg, #FDE047 0%, #FACC15 50%, #EAB308 100%);
+  color: #070B19;
+  font-weight: 600;
+  border: 1px solid rgba(254, 240, 138, 0.5);
+  box-shadow: 0 4px 20px -2px rgba(250, 204, 21, 0.35);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-gold-gradient:hover {
+  background: linear-gradient(135deg, #FEF08A 0%, #FDE047 50%, #FACC15 100%);
+  box-shadow: 0 6px 25px 0px rgba(250, 204, 21, 0.5);
+  transform: translateY(-1px);
+}
+
+.btn-gold-gradient:active { transform: scale(0.97); }
+
+/* Silver Metallic Button */
+.btn-silver-metallic {
+  background: linear-gradient(145deg, rgba(241, 245, 249, 0.12) 0%, rgba(148, 163, 184, 0.06) 100%);
+  color: #F8FAFC;
+  border: 1px solid rgba(226, 232, 240, 0.2);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.15), 0 4px 15px -3px rgba(0, 0, 0, 0.4);
+  transition: all 0.2s ease;
+}
+
+.btn-silver-metallic:hover {
+  background: linear-gradient(145deg, rgba(241, 245, 249, 0.2) 0%, rgba(148, 163, 184, 0.12) 100%);
+  border-color: rgba(226, 232, 240, 0.4);
+  color: #FFFFFF;
+  transform: translateY(-1px);
+}
+
+/* Badges */
+.badge-gold { background: rgba(250, 204, 21, 0.12); color: #FDE047; border: 1px solid rgba(250, 204, 21, 0.3); }
+.badge-silver { background: rgba(226, 232, 240, 0.08); color: #E2E8F0; border: 1px solid rgba(226, 232, 240, 0.18); }
+.badge-navy { background: rgba(30, 58, 138, 0.3); color: #7DD3FC; border: 1px solid rgba(56, 189, 248, 0.25); }
+
+/* Gold/Silver Text Gradients */
+.text-gold-gradient {
+  background: linear-gradient(135deg, #FFFBEB 0%, #FEF08A 30%, #FACC15 70%, #EAB308 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.text-silver-gradient {
+  background: linear-gradient(180deg, #FFFFFF 0%, #E2E8F0 50%, #94A3B8 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Sheen hover effect */
+.sheen-effect { position: relative; overflow: hidden; }
+.sheen-effect::after {
+  content: '';
+  position: absolute;
+  top: -50%; left: -50%;
+  width: 200%; height: 200%;
+  background: linear-gradient(60deg, transparent 35%, rgba(255, 255, 255, 0.12) 50%, transparent 65%);
+  transform: translateX(-100%);
+  transition: transform 0.6s ease;
+  pointer-events: none;
+}
+.sheen-effect:hover::after { transform: translateX(100%); }
+
+/* Storefront scrollbar (navy/gold) */
+.storefront-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
+.storefront-scroll::-webkit-scrollbar-track { background: #050814; }
+.storefront-scroll::-webkit-scrollbar-thumb { background: rgba(148, 163, 184, 0.2); border-radius: 9999px; }
+.storefront-scroll::-webkit-scrollbar-thumb:hover { background: rgba(250, 204, 21, 0.45); }
+
+/* Aurora animations */
+@keyframes auroraFloat {
+  0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.45; }
+  50% { transform: translate(4%, 3%) scale(1.08); opacity: 0.7; }
+}
+.aurora-blob { animation: auroraFloat 8s ease-in-out infinite; }

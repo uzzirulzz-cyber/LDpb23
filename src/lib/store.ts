@@ -7,7 +7,11 @@ export type SectionId =
   | "dashboard" | "leads" | "contacts" | "accounts"
   | "funnels" | "api-runs" | "waterfall" | "workflows" | "rules"
   | "bots" | "inbox" | "customers" | "orders"
-  | "analytics" | "integrations" | "audit" | "settings";
+  | "analytics" | "integrations" | "audit" | "settings"
+  // OPS — Operations
+  | "ops-dashboard" | "ops-fulfillment" | "ops-shipping" | "ops-suppliers"
+  // EMP — Employees
+  | "emp-directory" | "emp-attendance" | "emp-payroll" | "emp-performance";
 
 interface State {
   section: SectionId;

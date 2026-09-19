@@ -11,26 +11,37 @@ import {
   LayoutDashboard,
   Store,
   Menu,
+  X,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   Sheet,
   SheetContent,
   SheetTrigger,
   SheetTitle,
+  SheetClose,
 } from "@/components/ui/sheet";
 import { useCustomerId } from "./use-customer-id";
 
+const NAV_LINKS = [
+  { href: "/products", label: "Products" },
+  { href: "/pricing", label: "Pricing" },
+  { href: "/about", label: "About" },
+  { href: "/contact", label: "Contact" },
+];
+
 /**
- * Storefront top nav — sticky glass bar with logo, search, cart count badge,
- * account link, and CRM link.
+ * StorefrontHeader — dark navy glassmorphic sticky bar.
+ * Logo + wordmark (gold ".digital"), nav links (slate-300 → amber-300 hover),
+ * search icon, cart with gold count badge, Sign in (silver), Admin (gold).
+ * Mobile: Sheet drawer with nav links.
  */
 export function StorefrontHeader() {
   const { data: session } = useSession();
   const customerId = useCustomerId();
   const [count, setCount] = useState(0);
   const [q, setQ] = useState("");
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   const refresh = async () => {
     if (!customerId) return;
@@ -58,130 +69,171 @@ export function StorefrontHeader() {
     };
   }, [customerId]);
 
-  const navLinks = (
-    <>
-      <Link href="/products" className="text-sm font-medium text-foreground/80 hover:text-foreground transition-colors">
-        Products
-      </Link>
-      <Link href="/pricing" className="text-sm font-medium text-foreground/80 hover:text-foreground transition-colors">
-        Pricing
-      </Link>
-      <Link href="/about" className="text-sm font-medium text-foreground/80 hover:text-foreground transition-colors">
-        About
-      </Link>
-      <Link href="/contact" className="text-sm font-medium text-foreground/80 hover:text-foreground transition-colors">
-        Contact
-      </Link>
-      <Link href="/cart" className="text-sm font-medium text-foreground/80 hover:text-foreground transition-colors">
-        Cart
-      </Link>
-      <Link href="/admin" className="text-sm font-medium text-foreground/80 hover:text-foreground transition-colors">
-        Admin
-      </Link>
-      <Link href="/account" className="text-sm font-medium text-foreground/80 hover:text-foreground transition-colors">
-        Account
-      </Link>
-    </>
-  );
+  const submitSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    const term = q.trim();
+    window.location.href = term ? `/products?q=${encodeURIComponent(term)}` : "/products";
+  };
 
   return (
-    <header className="sticky top-0 z-50 w-full glass border-b border-border/60">
+    <header className="sticky top-0 z-50 w-full border-b border-white/5 bg-[#050814]/80 backdrop-blur-xl">
       <div className="mx-auto flex h-16 max-w-7xl items-center gap-4 px-4 sm:px-6 lg:px-8">
-        <Link href="/" className="flex items-center gap-2 shrink-0">
+        {/* Logo + wordmark */}
+        <Link href="/" className="flex items-center gap-2 shrink-0 group">
           <Image
             src="/playbeat-logo.png"
             alt="Playbeat"
             width={36}
             height={36}
-            className="rounded-lg"
+            className="rounded-lg ring-1 ring-white/10 transition-transform group-hover:scale-105"
             priority
           />
-          <span className="text-lg font-bold tracking-tight">
-            playbeat<span className="text-primary">.digital</span>
+          <span className="text-lg font-bold tracking-tight text-white">
+            playbeat<span className="text-gold-gradient">.digital</span>
           </span>
         </Link>
 
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            const term = q.trim();
-            window.location.href = term ? `/products?q=${encodeURIComponent(term)}` : "/products";
-          }}
-          className="relative hidden md:flex flex-1 max-w-xl"
-        >
-          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+        {/* Desktop search */}
+        <form onSubmit={submitSearch} className="relative hidden md:flex flex-1 max-w-xl ml-4">
+          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-500" />
           <Input
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder="Search gaming keys, AI tools, projectors…"
-            className="pl-9 bg-background/70"
+            className="border-white/10 bg-white/[0.04] pl-9 text-slate-200 placeholder:text-slate-500 focus-visible:border-amber-400/50 focus-visible:ring-amber-400/20"
           />
         </form>
 
-        <nav className="hidden lg:flex items-center gap-6 ml-auto">{navLinks}</nav>
+        {/* Desktop nav */}
+        <nav className="hidden lg:flex items-center gap-6 ml-auto">
+          {NAV_LINKS.map((l) => (
+            <Link
+              key={l.href}
+              href={l.href}
+              className="text-sm font-medium text-slate-300 transition-colors hover:text-amber-300"
+            >
+              {l.label}
+            </Link>
+          ))}
+        </nav>
 
+        {/* Right side actions */}
         <div className="flex items-center gap-2 ml-auto lg:ml-0">
-          <Button asChild variant="ghost" size="icon" className="relative" aria-label="Cart">
-            <Link href="/cart">
-              <ShoppingBag className="size-5" />
-              {count > 0 && (
-                <span className="absolute -right-1 -top-1 flex size-5 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground premium-shadow">
-                  {count > 99 ? "99+" : count}
-                </span>
-              )}
-            </Link>
-          </Button>
+          {/* Search icon (mobile) */}
+          <Link
+            href="/products"
+            className="lg:hidden inline-flex size-9 items-center justify-center rounded-md text-slate-300 hover:bg-white/5 hover:text-amber-300"
+            aria-label="Search"
+          >
+            <Search className="size-5" />
+          </Link>
 
-          <Button asChild variant="outline" size="sm" className="hidden sm:inline-flex">
-            <Link href="/account">
-              <User className="size-4" />
-              {session?.user?.name ? session.user.name.split(" ")[0] : "Sign in"}
-            </Link>
-          </Button>
+          {/* Cart with gold badge */}
+          <Link
+            href="/cart"
+            className="relative inline-flex size-9 items-center justify-center rounded-md text-slate-300 transition-colors hover:bg-white/5 hover:text-amber-300"
+            aria-label="Cart"
+          >
+            <ShoppingBag className="size-5" />
+            {count > 0 && (
+              <span className="absolute -right-1 -top-1 flex size-5 items-center justify-center rounded-full bg-amber-400 text-[10px] font-bold text-[#070B19] shadow-[0_0_10px_rgba(250,204,21,0.5)]">
+                {count > 99 ? "99+" : count}
+              </span>
+            )}
+          </Link>
 
-          <Button asChild size="sm" className="hidden sm:inline-flex">
-            <Link href="/admin">
-              <LayoutDashboard className="size-4" />
-              Admin
-            </Link>
-          </Button>
+          {/* Sign in (silver) */}
+          <Link
+            href="/account"
+            className="btn-silver-metallic hidden sm:inline-flex h-9 items-center gap-1.5 rounded-md px-3 text-xs font-semibold"
+          >
+            <User className="size-3.5" />
+            {session?.user?.name ? session.user.name.split(" ")[0] : "Sign in"}
+          </Link>
 
-          <Sheet>
+          {/* Admin (gold) */}
+          <Link
+            href="/admin"
+            className="btn-gold-gradient hidden sm:inline-flex h-9 items-center gap-1.5 rounded-md px-3 text-xs font-semibold"
+          >
+            <LayoutDashboard className="size-3.5" />
+            Admin
+          </Link>
+
+          {/* Mobile drawer */}
+          <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
             <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className="lg:hidden" aria-label="Menu">
-                <Menu className="size-5" />
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="right" className="w-72">
-              <SheetTitle className="px-1 pb-2 flex items-center gap-2">
-                <Store className="size-5 text-primary" />
-                <span className="font-bold">playbeat<span className="text-primary">.digital</span></span>
-              </SheetTitle>
-              <nav className="mt-4 flex flex-col gap-1">
-                <Link href="/products" className="rounded-md px-3 py-2 text-sm hover:bg-accent">Products</Link>
-                <Link href="/pricing" className="rounded-md px-3 py-2 text-sm hover:bg-accent">Pricing</Link>
-                <Link href="/about" className="rounded-md px-3 py-2 text-sm hover:bg-accent">About</Link>
-                <Link href="/contact" className="rounded-md px-3 py-2 text-sm hover:bg-accent">Contact</Link>
-                <Link href="/cart" className="rounded-md px-3 py-2 text-sm hover:bg-accent">Cart {count > 0 ? `(${count})` : ""}</Link>
-                <Link href="/admin" className="rounded-md px-3 py-2 text-sm hover:bg-accent">Admin</Link>
-                <Link href="/account" className="rounded-md px-3 py-2 text-sm hover:bg-accent">Account</Link>
-              </nav>
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  const term = q.trim();
-                  window.location.href = term ? `/products?q=${encodeURIComponent(term)}` : "/products";
-                }}
-                className="mt-4 relative"
+              <button
+                className="lg:hidden inline-flex size-9 items-center justify-center rounded-md text-slate-300 hover:bg-white/5 hover:text-amber-300"
+                aria-label="Menu"
               >
-                <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                <Menu className="size-5" />
+              </button>
+            </SheetTrigger>
+            <SheetContent
+              side="right"
+              className="w-80 border-white/10 bg-[#0A101F] text-slate-200"
+            >
+              <SheetTitle className="flex items-center justify-between gap-2">
+                <span className="flex items-center gap-2 text-base font-bold text-white">
+                  <Store className="size-5 text-amber-300" />
+                  playbeat<span className="text-gold-gradient">.digital</span>
+                </span>
+                <SheetClose asChild>
+                  <button
+                    className="inline-flex size-8 items-center justify-center rounded-md text-slate-400 hover:bg-white/5 hover:text-white"
+                    aria-label="Close menu"
+                  >
+                    <X className="size-4" />
+                  </button>
+                </SheetClose>
+              </SheetTitle>
+
+              <form onSubmit={submitSearch} className="relative mt-5">
+                <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-500" />
                 <Input
                   value={q}
                   onChange={(e) => setQ(e.target.value)}
                   placeholder="Search products…"
-                  className="pl-9"
+                  className="border-white/10 bg-white/[0.04] pl-9 text-slate-200 placeholder:text-slate-500"
                 />
               </form>
+
+              <nav className="mt-5 flex flex-col gap-1">
+                {NAV_LINKS.map((l) => (
+                  <Link
+                    key={l.href}
+                    href={l.href}
+                    onClick={() => setMobileOpen(false)}
+                    className="rounded-md px-3 py-2.5 text-sm font-medium text-slate-300 transition-colors hover:bg-white/5 hover:text-amber-300"
+                  >
+                    {l.label}
+                  </Link>
+                ))}
+                <Link
+                  href="/cart"
+                  onClick={() => setMobileOpen(false)}
+                  className="rounded-md px-3 py-2.5 text-sm font-medium text-slate-300 transition-colors hover:bg-white/5 hover:text-amber-300"
+                >
+                  Cart {count > 0 ? `(${count})` : ""}
+                </Link>
+                <Link
+                  href="/account"
+                  onClick={() => setMobileOpen(false)}
+                  className="btn-silver-metallic mt-3 inline-flex h-10 items-center justify-center gap-2 rounded-md px-4 text-sm font-semibold"
+                >
+                  <User className="size-4" />
+                  {session?.user?.name ? session.user.name.split(" ")[0] : "Sign in"}
+                </Link>
+                <Link
+                  href="/admin"
+                  onClick={() => setMobileOpen(false)}
+                  className="btn-gold-gradient mt-2 inline-flex h-10 items-center justify-center gap-2 rounded-md px-4 text-sm font-semibold"
+                >
+                  <LayoutDashboard className="size-4" />
+                  Admin Panel
+                </Link>
+              </nav>
             </SheetContent>
           </Sheet>
         </div>

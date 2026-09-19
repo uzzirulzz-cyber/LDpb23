@@ -8,7 +8,6 @@ import {
   Headset, Lock, Store, CreditCard, BadgeCheck, Headphones, Gift,
   Clock, TrendingUp, FileText, Plug, Users, BarChart3, Crown,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { StorefrontLayout } from "./layout";
 
 type Cell = boolean | string;
@@ -165,9 +164,9 @@ const FAQS = [
 ];
 
 function CellValue({ value }: { value: Cell }) {
-  if (value === true) return <Check className="mx-auto size-4 text-emerald-500" />;
-  if (value === false) return <X className="mx-auto size-4 text-muted-foreground/40" />;
-  return <span className="text-xs font-medium text-foreground/90">{value}</span>;
+  if (value === true) return <Check className="mx-auto size-4 text-amber-300" />;
+  if (value === false) return <X className="mx-auto size-4 text-slate-600" />;
+  return <span className="text-xs font-medium text-slate-200">{value}</span>;
 }
 
 export function PricingPage() {
@@ -177,48 +176,48 @@ export function PricingPage() {
     <StorefrontLayout>
       {/* ============ HERO ============ */}
       <section className="relative overflow-hidden">
-        <div className="absolute inset-0 -z-10 bg-gradient-to-br from-primary/15 via-accent/40 to-transparent" />
         <div
-          className="absolute inset-0 -z-10 opacity-60"
-          style={{
-            backgroundImage:
-              "radial-gradient(60% 60% at 50% 0%, oklch(0.62 0.20 256 / 0.18) 0%, transparent 70%)",
-          }}
+          aria-hidden
+          className="aurora-blob pointer-events-none absolute -right-40 -top-40 -z-10 size-[520px] rounded-full opacity-50"
+          style={{ background: "radial-gradient(circle, rgba(250, 204, 21, 0.28) 0%, transparent 65%)" }}
+        />
+        <div
+          aria-hidden
+          className="aurora-blob pointer-events-none absolute -left-32 top-20 -z-10 size-[420px] rounded-full opacity-40"
+          style={{ background: "radial-gradient(circle, rgba(56, 189, 248, 0.30) 0%, transparent 65%)", animationDelay: "1.5s" }}
         />
         <div className="mx-auto max-w-7xl px-4 pb-12 pt-16 sm:px-6 lg:px-8 lg:pt-24">
           <div className="mx-auto max-w-3xl text-center">
-            <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-border/60 glass px-4 py-1.5 text-xs font-medium text-muted-foreground">
-              <Sparkles className="size-3.5 text-primary" />
+            <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-amber-400/30 bg-amber-400/[0.06] px-4 py-1.5 text-xs font-medium text-amber-300 backdrop-blur-sm">
+              <Sparkles className="size-3.5" />
               Pricing · PKR default · cancel anytime
             </div>
             <div className="mb-6 flex items-center justify-center">
               <Image
                 src="/playbeat-logo.png"
                 alt="Playbeat"
-                width={64}
-                height={64}
-                className="rounded-2xl premium-shadow"
+                width={72}
+                height={72}
+                className="rounded-2xl ring-1 ring-white/10"
                 priority
               />
             </div>
-            <h1 className="text-balance text-4xl font-extrabold tracking-tight sm:text-5xl lg:text-6xl">
+            <h1 className="text-balance text-4xl font-extrabold tracking-tight text-white sm:text-5xl lg:text-6xl">
               Simple,{" "}
-              <span className="bg-gradient-to-r from-primary to-blue-500 bg-clip-text text-transparent">
-                transparent pricing
-              </span>
+              <span className="text-gold-gradient">transparent pricing</span>
             </h1>
-            <p className="mx-auto mt-5 max-w-2xl text-balance text-base text-muted-foreground sm:text-lg">
+            <p className="mx-auto mt-5 max-w-2xl text-balance text-base text-slate-300 sm:text-lg">
               PKR pricing for everyone. Upgrade when you need more.
             </p>
-            <div className="mt-6 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-xs text-muted-foreground">
+            <div className="mt-6 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-xs text-slate-400">
               <span className="inline-flex items-center gap-1.5">
-                <ShieldCheck className="size-3.5 text-emerald-500" /> No hidden fees
+                <ShieldCheck className="size-3.5 text-emerald-400" /> No hidden fees
               </span>
               <span className="inline-flex items-center gap-1.5">
-                <Lock className="size-3.5" /> Secure checkout
+                <Lock className="size-3.5 text-amber-300" /> Secure checkout
               </span>
               <span className="inline-flex items-center gap-1.5">
-                <Headset className="size-3.5 text-primary" /> 24/7 support
+                <Headset className="size-3.5 text-amber-300" /> 24/7 support
               </span>
             </div>
           </div>
@@ -233,45 +232,46 @@ export function PricingPage() {
             return (
               <div
                 key={tier.key}
-                className={`relative flex flex-col rounded-2xl border p-6 premium-shadow ${
+                className={`relative flex flex-col rounded-2xl p-6 transition-all ${
                   tier.popular
-                    ? "border-primary bg-card gradient-card ring-2 ring-primary/30"
-                    : "border-border/60 bg-card"
+                    ? "glass-navy-card ring-2 ring-amber-400/50"
+                    : "border border-white/[0.07] bg-gradient-to-b from-[#0C1428] to-[#0A101F]"
                 }`}
               >
                 {tier.popular && (
-                  <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-primary px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-primary-foreground">
+                  <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-amber-400 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-[#070B19]">
                     Most popular
                   </span>
                 )}
                 <div className="mb-4 flex items-center gap-3">
-                  <div className="inline-flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                  <div className="inline-flex size-10 items-center justify-center rounded-lg bg-amber-400/10 text-amber-300 ring-1 ring-amber-400/20">
                     <Icon className="size-5" />
                   </div>
                   <div>
-                    <p className="text-base font-bold tracking-tight">{tier.name}</p>
-                    <p className="text-xs text-muted-foreground">{tier.desc}</p>
+                    <p className="text-base font-bold tracking-tight text-white">{tier.name}</p>
+                    <p className="text-xs text-slate-400">{tier.desc}</p>
                   </div>
                 </div>
                 <div className="mt-2 flex items-baseline gap-1">
-                  <span className="text-4xl font-extrabold tracking-tight">{tier.price}</span>
-                  <span className="text-sm text-muted-foreground">{tier.period}</span>
+                  <span className="text-4xl font-extrabold tracking-tight text-white">{tier.price}</span>
+                  <span className="text-sm text-slate-400">{tier.period}</span>
                 </div>
-                <p className="mt-2 text-xs italic text-muted-foreground">{tier.tagline}</p>
-                <Button
-                  asChild
-                  className="mt-5 w-full"
-                  variant={tier.popular ? "default" : "outline"}
+                <p className="mt-2 text-xs italic text-slate-500">{tier.tagline}</p>
+                <Link
+                  href={tier.href}
+                  className={
+                    tier.popular
+                      ? "btn-gold-gradient sheen-effect mt-5 inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg text-sm font-semibold"
+                      : "btn-silver-metallic mt-5 inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg text-sm font-semibold"
+                  }
                 >
-                  <Link href={tier.href}>
-                    {tier.cta} <ArrowRight className="size-4" />
-                  </Link>
-                </Button>
+                  {tier.cta} <ArrowRight className="size-4" />
+                </Link>
                 <ul className="mt-6 space-y-2.5">
                   {tier.features.map((f) => (
                     <li key={f} className="flex items-start gap-2 text-sm">
-                      <Check className="mt-0.5 size-4 shrink-0 text-emerald-500" />
-                      <span className="text-muted-foreground">{f}</span>
+                      <Check className="mt-0.5 size-4 shrink-0 text-amber-300" />
+                      <span className="text-slate-300">{f}</span>
                     </li>
                   ))}
                 </ul>
@@ -279,41 +279,41 @@ export function PricingPage() {
             );
           })}
         </div>
-        <p className="mt-6 text-center text-xs text-muted-foreground">
+        <p className="mt-6 text-center text-xs text-slate-500">
           All prices in Pakistani Rupee (₨). Pro &amp; Business plans exclude applicable
           sales tax. Cancel anytime from your account dashboard.
         </p>
       </section>
 
       {/* ============ COMPARISON TABLE ============ */}
-      <section id="compare" className="border-y border-border/60 bg-accent/20">
+      <section id="compare" className="border-y border-white/5 bg-[#0A101F]/40">
         <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
           <div className="mb-10 text-center">
-            <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">
+            <h2 className="text-2xl font-bold tracking-tight text-white sm:text-3xl">
               Compare every feature
             </h2>
-            <p className="mt-2 text-sm text-muted-foreground">
+            <p className="mt-2 text-sm text-slate-400">
               Pick the plan that fits how you buy. No surprises.
             </p>
           </div>
 
-          <div className="overflow-x-auto rounded-2xl border border-border/60 bg-card premium-shadow">
+          <div className="overflow-x-auto rounded-2xl border border-white/[0.07] bg-gradient-to-b from-[#0C1428] to-[#0A101F]">
             <table className="w-full min-w-[760px] border-collapse text-sm">
               <thead>
-                <tr className="border-b border-border/60 bg-accent/40">
-                  <th className="p-4 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                <tr className="border-b border-white/10 bg-white/[0.02]">
+                  <th className="p-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">
                     Feature
                   </th>
                   {TIERS.map((t) => (
                     <th
                       key={t.key}
                       className={`p-4 text-center text-xs font-semibold uppercase tracking-wider ${
-                        t.popular ? "text-primary" : "text-muted-foreground"
+                        t.popular ? "text-amber-300" : "text-slate-400"
                       }`}
                     >
                       <div className="flex flex-col items-center gap-1">
                         <span>{t.name}</span>
-                        <span className="text-[10px] font-normal normal-case text-muted-foreground">
+                        <span className="text-[10px] font-normal normal-case text-slate-500">
                           {t.price}
                           {t.period && ` ${t.period}`}
                         </span>
@@ -325,12 +325,10 @@ export function PricingPage() {
               <tbody>
                 {COMPARISON_GROUPS.map((group, gi) => (
                   <Fragment key={`g-${gi}`}>
-                    <tr
-                      className="border-b border-border/60 bg-muted/30"
-                    >
+                    <tr className="border-b border-white/10 bg-white/[0.03]">
                       <td
                         colSpan={4}
-                        className="px-4 py-2 text-[11px] font-bold uppercase tracking-wider text-foreground/70"
+                        className="px-4 py-2 text-[11px] font-bold uppercase tracking-wider text-amber-300/80"
                       >
                         {group.group}
                       </td>
@@ -340,12 +338,12 @@ export function PricingPage() {
                       return (
                         <tr
                           key={`g-${gi}-r-${ri}`}
-                          className="border-b border-border/40 last:border-b-0 hover:bg-accent/30"
+                          className="border-b border-white/5 last:border-b-0 hover:bg-white/[0.02]"
                         >
                           <td className="p-4">
                             <div className="flex items-center gap-2.5">
-                              <RowIcon className="size-4 shrink-0 text-muted-foreground" />
-                              <span className="text-sm text-foreground/90">{row.label}</span>
+                              <RowIcon className="size-4 shrink-0 text-slate-500" />
+                              <span className="text-sm text-slate-200">{row.label}</span>
                             </div>
                           </td>
                           {row.values.map((v, vi) => (
@@ -367,10 +365,10 @@ export function PricingPage() {
       {/* ============ FAQ ============ */}
       <section className="mx-auto max-w-3xl px-4 py-16 sm:px-6 lg:px-8">
         <div className="mb-10 text-center">
-          <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">
+          <h2 className="text-2xl font-bold tracking-tight text-white sm:text-3xl">
             Pricing questions, answered
           </h2>
-          <p className="mt-2 text-sm text-muted-foreground">
+          <p className="mt-2 text-sm text-slate-400">
             Still unsure? Reach out on WhatsApp any time.
           </p>
         </div>
@@ -378,39 +376,41 @@ export function PricingPage() {
           {FAQS.map((faq, i) => (
             <div
               key={i}
-              className="rounded-xl border border-border/60 bg-card overflow-hidden gradient-card"
+              className="overflow-hidden rounded-xl border border-white/[0.07] bg-gradient-to-b from-[#0C1428] to-[#0A101F]"
             >
               <button
                 onClick={() => setOpenFaq(openFaq === i ? null : i)}
                 className="flex w-full items-center justify-between gap-3 p-4 text-left"
               >
-                <span className="text-sm font-semibold">{faq.q}</span>
+                <span className="text-sm font-semibold text-white">{faq.q}</span>
                 <ChevronDown
-                  className={`size-4 shrink-0 text-muted-foreground transition-transform ${
+                  className={`size-4 shrink-0 text-amber-300 transition-transform ${
                     openFaq === i ? "rotate-180" : ""
                   }`}
                 />
               </button>
               {openFaq === i && (
-                <div className="px-4 pb-4 text-sm text-muted-foreground">{faq.a}</div>
+                <div className="px-4 pb-4 text-sm text-slate-400">{faq.a}</div>
               )}
             </div>
           ))}
         </div>
         <div className="mt-6 text-center">
-          <Button asChild variant="link" size="sm">
-            <Link href="/#faq">
-              See all FAQs <ArrowRight className="size-4" />
-            </Link>
-          </Button>
+          <Link
+            href="/#faq"
+            className="inline-flex items-center gap-1 text-sm font-medium text-amber-300 hover:text-amber-200"
+          >
+            See all FAQs <ArrowRight className="size-4" />
+          </Link>
         </div>
       </section>
 
       {/* ============ FINAL CTA ============ */}
       <section className="mx-auto max-w-7xl px-4 pb-20 sm:px-6 lg:px-8">
-        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary to-blue-700 p-8 text-primary-foreground premium-shadow sm:p-12">
+        <div className="relative overflow-hidden rounded-2xl border border-amber-400/30 bg-gradient-to-br from-amber-500 via-amber-400 to-yellow-500 p-8 text-[#070B19] sm:p-12">
           <div
-            className="absolute inset-0 opacity-30"
+            aria-hidden
+            className="pointer-events-none absolute inset-0 opacity-30"
             style={{
               backgroundImage:
                 "radial-gradient(circle at 80% 20%, rgba(255,255,255,0.5) 0, transparent 50%)",
@@ -419,16 +419,17 @@ export function PricingPage() {
           <div className="relative flex flex-col items-start justify-between gap-6 sm:flex-row sm:items-center">
             <div className="max-w-lg">
               <h2 className="text-2xl font-bold sm:text-3xl">Not sure? Start free</h2>
-              <p className="mt-1 text-primary-foreground/80">
+              <p className="mt-1 text-[#070B19]/80">
                 Browse the catalog, buy a single key, and upgrade to Pro only when
                 you&apos;re ready. No credit card to start.
               </p>
             </div>
-            <Button asChild size="lg" variant="secondary" className="shrink-0">
-              <Link href="/products">
-                Start shopping <ArrowRight className="size-4" />
-              </Link>
-            </Button>
+            <Link
+              href="/products"
+              className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-lg bg-[#070B19] px-6 text-sm font-semibold text-amber-300 transition-colors hover:bg-[#070B19]/90"
+            >
+              Start shopping <ArrowRight className="size-4" />
+            </Link>
           </div>
         </div>
       </section>

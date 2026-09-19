@@ -2,102 +2,151 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { Mail, MessageCircle, Send } from "lucide-react";
+import { Mail, MessageCircle, Send, ShieldCheck, Zap } from "lucide-react";
+
+const COLS: Array<{ title: string; links: Array<{ label: string; href: string }> }> = [
+  {
+    title: "Products",
+    links: [
+      { label: "Gaming Keys", href: "/products?category=Gaming" },
+      { label: "Streaming", href: "/products?category=Streaming" },
+      { label: "Subscriptions", href: "/products?category=Subscriptions" },
+      { label: "AI Tools", href: "/products?category=AI%20Tools" },
+      { label: "Projectors", href: "/products?category=Projectors" },
+    ],
+  },
+  {
+    title: "Company",
+    links: [
+      { label: "About", href: "/about" },
+      { label: "Contact", href: "/contact" },
+      { label: "Pricing", href: "/pricing" },
+      { label: "Admin", href: "/admin" },
+    ],
+  },
+  {
+    title: "Support",
+    links: [
+      { label: "Delivery Info", href: "/products" },
+      { label: "Returns", href: "/products" },
+      { label: "Privacy Policy", href: "/products" },
+      { label: "Terms", href: "/products" },
+    ],
+  },
+];
 
 /**
- * Playbeat footer — branding + storefront + product + support link columns.
+ * StorefrontFooter — dark navy (#050814) with gold top accent line.
+ * 4 columns: Brand, Products, Company, Support. All text slate-400, links
+ * hover:text-amber-300.
  */
 export function StorefrontFooter() {
   return (
-    <footer className="mt-24 border-t border-border/60 bg-gradient-to-b from-transparent to-accent/30">
-      <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-2 gap-8 md:grid-cols-4 lg:grid-cols-5">
-          <div className="col-span-2 lg:col-span-2 space-y-3">
-            <Link href="/" className="flex items-center gap-2">
+    <footer className="relative mt-24 bg-[#050814] text-slate-400">
+      {/* Gold accent line */}
+      <div className="h-px w-full bg-gradient-to-r from-transparent via-amber-400/60 to-transparent" />
+
+      <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
+        <div className="grid grid-cols-2 gap-10 md:grid-cols-4 lg:gap-16">
+          {/* Brand */}
+          <div className="col-span-2 md:col-span-1 space-y-4">
+            <Link href="/" className="inline-flex items-center gap-2">
               <Image
                 src="/playbeat-logo.png"
                 alt="Playbeat"
-                width={36}
-                height={36}
-                className="rounded-lg"
+                width={40}
+                height={40}
+                className="rounded-lg ring-1 ring-white/10"
               />
-              <span className="text-lg font-bold tracking-tight">
-                playbeat<span className="text-primary">.digital</span>
+              <span className="text-lg font-bold tracking-tight text-white">
+                playbeat<span className="text-gold-gradient">.digital</span>
               </span>
             </Link>
-            <p className="text-sm text-muted-foreground max-w-xs">
-              Instant digital delivery for gaming keys, subscriptions, AI tools,
-              SaaS licences, and smart projectors. Verified keys. Premium support.
+            <p className="text-sm leading-relaxed text-slate-400 max-w-xs">
+              Pakistan&apos;s premium digital marketplace — instant delivery,
+              verified keys, PKR pricing. Gaming, subscriptions, AI tools,
+              SaaS &amp; smart projectors.
             </p>
-            <div className="flex items-center gap-3 pt-1">
-              <a
+            <div className="flex items-center gap-2 pt-1">
+              <SocialIcon
                 href="mailto:hello@playbeat.digital"
-                className="flex size-9 items-center justify-center rounded-lg border border-border/60 bg-background/60 hover:bg-accent transition-colors"
-                aria-label="Email"
-              >
-                <Mail className="size-4" />
-              </a>
-              <a
-                href="https://wa.me/923000000000"
-                target="_blank"
-                rel="noreferrer"
-                className="flex size-9 items-center justify-center rounded-lg border border-border/60 bg-background/60 hover:bg-accent transition-colors"
-                aria-label="WhatsApp"
-              >
-                <MessageCircle className="size-4" />
-              </a>
-              <a
+                label="Email"
+                icon={<Mail className="size-4" />}
+              />
+              <SocialIcon
+                href="https://wa.me/923001234567"
+                label="WhatsApp"
+                icon={<MessageCircle className="size-4" />}
+              />
+              <SocialIcon
                 href="https://t.me/playbeatdigital"
-                target="_blank"
-                rel="noreferrer"
-                className="flex size-9 items-center justify-center rounded-lg border border-border/60 bg-background/60 hover:bg-accent transition-colors"
-                aria-label="Telegram"
-              >
-                <Send className="size-4" />
-              </a>
+                label="Telegram"
+                icon={<Send className="size-4" />}
+              />
+            </div>
+            <div className="flex flex-wrap items-center gap-3 pt-2 text-[11px] text-slate-500">
+              <span className="inline-flex items-center gap-1">
+                <ShieldCheck className="size-3 text-emerald-400" /> Verified keys
+              </span>
+              <span className="inline-flex items-center gap-1">
+                <Zap className="size-3 text-amber-400" /> Instant delivery
+              </span>
             </div>
           </div>
 
-          <div>
-            <h4 className="mb-3 text-sm font-semibold">Store</h4>
-            <ul className="space-y-2 text-sm text-muted-foreground">
-              <li><Link href="/products" className="hover:text-foreground">All Products</Link></li>
-              <li><Link href="/products?category=Gaming" className="hover:text-foreground">Gaming Keys</Link></li>
-              <li><Link href="/products?category=AI%20Tools" className="hover:text-foreground">AI Tools</Link></li>
-              <li><Link href="/products?category=Projectors" className="hover:text-foreground">Projectors</Link></li>
-              <li><Link href="/cart" className="hover:text-foreground">Cart</Link></li>
-            </ul>
-          </div>
-
-          <div>
-            <h4 className="mb-3 text-sm font-semibold">Account</h4>
-            <ul className="space-y-2 text-sm text-muted-foreground">
-              <li><Link href="/account" className="hover:text-foreground">Sign In</Link></li>
-              <li><Link href="/account" className="hover:text-foreground">Order History</Link></li>
-              <li><Link href="/account" className="hover:text-foreground">License Keys</Link></li>
-              <li><Link href="/admin" className="hover:text-foreground">Admin Panel</Link></li>
-            </ul>
-          </div>
-
-          <div>
-            <h4 className="mb-3 text-sm font-semibold">Support</h4>
-            <ul className="space-y-2 text-sm text-muted-foreground">
-              <li><Link href="/products" className="hover:text-foreground">Delivery Info</Link></li>
-              <li><Link href="/products" className="hover:text-foreground">Returns</Link></li>
-              <li><Link href="/about" className="hover:text-foreground">About Us</Link></li>
-              <li><Link href="/contact" className="hover:text-foreground">Contact</Link></li>
-              <li><Link href="/pricing" className="hover:text-foreground">Pricing</Link></li>
-              <li><Link href="/products" className="hover:text-foreground">Privacy Policy</Link></li>
-              <li><Link href="/products" className="hover:text-foreground">Terms</Link></li>
-            </ul>
-          </div>
+          {/* Link columns */}
+          {COLS.map((col) => (
+            <div key={col.title}>
+              <h4 className="mb-4 text-xs font-semibold uppercase tracking-wider text-slate-200">
+                {col.title}
+              </h4>
+              <ul className="space-y-2.5 text-sm">
+                {col.links.map((l) => (
+                  <li key={l.label}>
+                    <Link
+                      href={l.href}
+                      className="text-slate-400 transition-colors hover:text-amber-300"
+                    >
+                      {l.label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
         </div>
 
-        <div className="mt-10 flex flex-col items-center justify-between gap-3 border-t border-border/60 pt-6 text-xs text-muted-foreground sm:flex-row">
+        {/* Copyright bar */}
+        <div className="mt-12 flex flex-col items-center justify-between gap-3 border-t border-white/5 pt-6 text-xs text-slate-500 sm:flex-row">
           <p>© {new Date().getFullYear()} Playbeat Digital. All rights reserved.</p>
-          <p>Premium digital marketplace · PKR pricing · Instant auto-delivery</p>
+          <p className="flex items-center gap-2">
+            <span className="size-1.5 rounded-full bg-amber-400" />
+            Premium digital marketplace · PKR pricing · Instant auto-delivery
+          </p>
         </div>
       </div>
     </footer>
+  );
+}
+
+function SocialIcon({
+  href,
+  label,
+  icon,
+}: {
+  href: string;
+  label: string;
+  icon: React.ReactNode;
+}) {
+  return (
+    <a
+      href={href}
+      target={href.startsWith("http") ? "_blank" : undefined}
+      rel={href.startsWith("http") ? "noopener noreferrer" : undefined}
+      aria-label={label}
+      className="inline-flex size-9 items-center justify-center rounded-lg border border-white/10 bg-white/[0.03] text-slate-300 transition-all hover:border-amber-400/40 hover:bg-amber-400/10 hover:text-amber-300"
+    >
+      {icon}
+    </a>
   );
 }

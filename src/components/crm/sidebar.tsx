@@ -5,6 +5,8 @@ import {
   LayoutDashboard, Users, Contact, Building2, Filter, Plug,
   Waves, Workflow, Gavel, Bot, Inbox, ShoppingCart, Package,
   BarChart3, Plug2, ScrollText, Settings, Radio,
+  Truck, PackageCheck, Send, Building2 as BuildingIcon,
+  Users as UsersIcon, Clock, DollarSign, TrendingUp,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useDashboard, type SectionId } from "@/lib/store";
@@ -46,6 +48,24 @@ const GROUPS: { group: string; items: NavItem[] }[] = [
       { id: "customers", label: "Customers", icon: Users },
       { id: "orders", label: "Orders", icon: ShoppingCart },
       { id: "analytics", label: "Analytics", icon: BarChart3 },
+    ],
+  },
+  {
+    group: "OPS",
+    items: [
+      { id: "ops-dashboard", label: "Ops Dashboard", icon: Truck },
+      { id: "ops-fulfillment", label: "Fulfillment", icon: PackageCheck },
+      { id: "ops-shipping", label: "Shipping", icon: Send },
+      { id: "ops-suppliers", label: "Suppliers", icon: BuildingIcon },
+    ],
+  },
+  {
+    group: "EMP",
+    items: [
+      { id: "emp-directory", label: "Directory", icon: UsersIcon },
+      { id: "emp-attendance", label: "Attendance", icon: Clock },
+      { id: "emp-payroll", label: "Payroll", icon: DollarSign },
+      { id: "emp-performance", label: "Performance", icon: TrendingUp },
     ],
   },
   {

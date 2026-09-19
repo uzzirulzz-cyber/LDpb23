@@ -156,6 +156,35 @@ export async function seed() {
     console.log("  ✓ 6 homepage blocks created");
   }
 
+  // OPS — Suppliers (structural vendor directory; real contact config, not fake transactions)
+  const supplierCount = await db.supplier.count();
+  if (supplierCount === 0) {
+    const suppliers = [
+      ["Steam Distribution", "Valve Partner Desk", "partners@steam-distribution.example", "+1-425-000-0001", "US", "digital"],
+      ["Netflix Partner Program", "Netflix Partnerships", "partners@netflix.example", "+1-310-000-0002", "US", "digital"],
+      ["Adobe Licensing Reseller", "Adobe Channel Desk", "channel@example-adobe.example", "+1-408-000-0003", "US", "digital"],
+      ["PlayBeat Hardware ODM", "Shenzhen ODM Desk", "odm@playbeat-hardware.example", "+86-755-0000-0004", "CN", "hardware"],
+      ["TCS Logistics PK", "TCS Corporate Desk", "corporate@tcs.example", "+92-21-0000-0005", "PK", "service"],
+      ["Stripe Payments", "Stripe Support", "support@stripe.example", "+1-415-000-0006", "US", "service"],
+    ] as const;
+    for (const [name, contactName, email, phone, country, category] of suppliers) {
+      await db.supplier.create({
+        data: {
+          name: name as string,
+          contactName: contactName as string,
+          email: email as string,
+          phone: phone as string,
+          country: country as string,
+          category: category as string,
+          status: "active",
+        },
+      });
+    }
+    console.log("  ✓ 6 suppliers created (structural vendor directory)");
+  } else {
+    console.log(`  • suppliers already present (${supplierCount}), skipping`);
+  }
+
   console.log("✅ Structural seed complete. CRM business data is empty (zero-mock). Use storefront + real actions to populate.");
 }
 

@@ -18,11 +18,8 @@ import {
   Hash,
   Home as HomeIcon,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { StorefrontLayout } from "./layout";
 import { useCustomerId } from "./use-customer-id";
@@ -52,11 +49,11 @@ type Order = {
 type OrdersResponse = { data?: Order[]; count?: number; error?: string };
 
 const STATUS_TONE: Record<string, string> = {
-  pending: "bg-amber-500/10 text-amber-700 dark:text-amber-400",
-  paid: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400",
-  fulfilled: "bg-blue-500/10 text-blue-700 dark:text-blue-400",
-  cancelled: "bg-rose-500/10 text-rose-700 dark:text-rose-400",
-  refunded: "bg-slate-500/10 text-slate-700 dark:text-slate-400",
+  pending: "border-amber-400/30 bg-amber-400/10 text-amber-300",
+  paid: "border-emerald-500/30 bg-emerald-500/10 text-emerald-300",
+  fulfilled: "border-cyan-500/30 bg-cyan-500/10 text-cyan-300",
+  cancelled: "border-rose-500/30 bg-rose-500/10 text-rose-300",
+  refunded: "border-slate-500/30 bg-slate-500/10 text-slate-300",
 };
 
 export function AccountView() {
@@ -65,7 +62,6 @@ export function AccountView() {
   const [orders, setOrders] = useState<Order[] | null>(null);
   const [loadingOrders, setLoadingOrders] = useState(false);
 
-  // Form state
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -128,8 +124,6 @@ export function AccountView() {
 
   const onOAuth = async (provider: "google" | "facebook") => {
     try {
-      // next-auth will surface an honest "OAuthAccountNotLinked" / config error
-      // if the provider is not configured. redirect:false so we can toast on error.
       const res = await signIn(provider, { redirect: false });
       if (!res || res.error) {
         toast.error(`${provider === "google" ? "Google" : "Facebook"} sign-in unavailable`, {
@@ -159,19 +153,21 @@ export function AccountView() {
   return (
     <StorefrontLayout>
       <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
-        <nav className="mb-5 flex items-center gap-1.5 text-xs text-muted-foreground">
-          <Link href="/" className="flex items-center gap-1 hover:text-foreground"><HomeIcon className="size-3" /> Home</Link>
+        <nav className="mb-5 flex items-center gap-1.5 text-xs text-slate-400">
+          <Link href="/" className="flex items-center gap-1 hover:text-amber-300">
+            <HomeIcon className="size-3" /> Home
+          </Link>
           <span>/</span>
-          <span className="text-foreground">Account</span>
+          <span className="text-slate-200">Account</span>
         </nav>
 
-        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Your Account</h1>
-        <p className="text-sm text-muted-foreground">Manage your profile, orders &amp; license keys.</p>
+        <h1 className="text-2xl font-bold tracking-tight text-white sm:text-3xl">Your Account</h1>
+        <p className="text-sm text-slate-400">Manage your profile, orders &amp; license keys.</p>
 
         {loading ? (
           <div className="mt-8 grid gap-6 lg:grid-cols-[1fr_2fr]">
-            <Skeleton className="h-64 w-full rounded-xl" />
-            <Skeleton className="h-64 w-full rounded-xl" />
+            <div className="glass-navy-panel h-64 animate-pulse" />
+            <div className="glass-navy-panel h-64 animate-pulse" />
           </div>
         ) : !session ? (
           <SignInCard
@@ -217,45 +213,69 @@ function SignInCard({
 }) {
   return (
     <div className="mt-8 grid gap-6 lg:grid-cols-2">
-      <div className="rounded-2xl border border-border/60 bg-card p-6 gradient-card premium-shadow">
-        <h2 className="flex items-center gap-2 text-lg font-semibold">
-          <UserIcon className="size-5 text-primary" /> Sign in
+      <div className="glass-navy-panel p-6">
+        <h2 className="flex items-center gap-2 text-lg font-semibold text-white">
+          <UserIcon className="size-5 text-amber-300" /> Sign in
         </h2>
-        <p className="mt-1 text-xs text-muted-foreground">
+        <p className="mt-1 text-xs text-slate-400">
           Use your email &amp; password. If OAuth providers are configured, you can also use them below.
         </p>
         <form onSubmit={onSubmit} className="mt-5 space-y-4">
           <div>
-            <Label className="mb-1.5 block text-xs font-medium">Email</Label>
-            <Input type="email" value={email} onChange={(e) => onEmailChange(e.target.value)} placeholder="you@example.com" autoComplete="email" />
+            <Label className="mb-1.5 block text-xs font-medium text-slate-300">Email</Label>
+            <Input
+              type="email"
+              value={email}
+              onChange={(e) => onEmailChange(e.target.value)}
+              placeholder="you@example.com"
+              autoComplete="email"
+              className="border-white/10 bg-white/[0.04] text-slate-200 placeholder:text-slate-500 focus-visible:border-amber-400/50 focus-visible:ring-amber-400/20"
+            />
           </div>
           <div>
-            <Label className="mb-1.5 block text-xs font-medium">Password</Label>
-            <Input type="password" value={password} onChange={(e) => onPasswordChange(e.target.value)} placeholder="••••••••" autoComplete="current-password" />
+            <Label className="mb-1.5 block text-xs font-medium text-slate-300">Password</Label>
+            <Input
+              type="password"
+              value={password}
+              onChange={(e) => onPasswordChange(e.target.value)}
+              placeholder="••••••••"
+              autoComplete="current-password"
+              className="border-white/10 bg-white/[0.04] text-slate-200 placeholder:text-slate-500 focus-visible:border-amber-400/50 focus-visible:ring-amber-400/20"
+            />
           </div>
-          <Button type="submit" size="lg" className="w-full" disabled={submitting}>
+          <button
+            type="submit"
+            disabled={submitting}
+            className="btn-gold-gradient sheen-effect inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-70"
+          >
             {submitting ? <Loader2 className="size-4 animate-spin" /> : <ShieldCheck className="size-4" />}
             {submitting ? "Signing in…" : "Sign in"}
-          </Button>
+          </button>
         </form>
       </div>
 
-      <div className="rounded-2xl border border-border/60 bg-card p-6 gradient-card">
-        <h2 className="text-lg font-semibold">Continue with OAuth</h2>
-        <p className="mt-1 text-xs text-muted-foreground">
+      <div className="glass-navy-panel p-6">
+        <h2 className="text-lg font-semibold text-white">Continue with OAuth</h2>
+        <p className="mt-1 text-xs text-slate-400">
           If your admin has configured Google or Facebook sign-in, you can use them here.
           If not configured, you&apos;ll see an honest error.
         </p>
         <div className="mt-5 space-y-3">
-          <Button variant="outline" className="w-full justify-start" size="lg" onClick={() => onOAuth("google")}>
+          <button
+            onClick={() => onOAuth("google")}
+            className="btn-silver-metallic inline-flex h-11 w-full items-center justify-start gap-3 rounded-lg px-4 text-sm font-semibold"
+          >
             <GoogleIcon /> Continue with Google
-          </Button>
-          <Button variant="outline" className="w-full justify-start" size="lg" onClick={() => onOAuth("facebook")}>
+          </button>
+          <button
+            onClick={() => onOAuth("facebook")}
+            className="btn-silver-metallic inline-flex h-11 w-full items-center justify-start gap-3 rounded-lg px-4 text-sm font-semibold"
+          >
             <FacebookIcon /> Continue with Facebook
-          </Button>
+          </button>
         </div>
-        <div className="mt-6 rounded-lg border border-border/60 bg-accent/40 p-4 text-xs text-muted-foreground">
-          <p className="font-medium text-foreground">No account?</p>
+        <div className="mt-6 rounded-lg border border-white/10 bg-white/[0.03] p-4 text-xs text-slate-400">
+          <p className="font-medium text-slate-200">No account?</p>
           <p className="mt-1">
             Accounts are created by an admin in the CRM. If you&apos;ve placed an order as a guest, your
             license keys are still attached to your customer profile and will appear here once you sign in.
@@ -294,38 +314,56 @@ function SignedIn({
     <div className="mt-8 grid gap-6 lg:grid-cols-[1fr_2fr]">
       {/* Profile card */}
       <aside className="space-y-4">
-        <div className="rounded-2xl border border-border/60 bg-card p-6 gradient-card premium-shadow">
+        <div className="glass-navy-panel p-6">
           <div className="flex items-center gap-3">
-            <div className="flex size-12 items-center justify-center rounded-full bg-primary text-lg font-bold text-primary-foreground">
+            <div className="flex size-12 items-center justify-center rounded-full bg-amber-400/15 text-lg font-bold text-amber-300 ring-1 ring-amber-400/30">
               {(user?.name ?? user?.email ?? "?").charAt(0).toUpperCase()}
             </div>
             <div className="min-w-0 flex-1">
-              <p className="truncate font-semibold">{user?.name ?? "Customer"}</p>
-              <p className="truncate text-xs text-muted-foreground flex items-center gap-1">
+              <p className="truncate font-semibold text-white">{user?.name ?? "Customer"}</p>
+              <p className="truncate text-xs text-slate-400 flex items-center gap-1">
                 <Mail className="size-3" /> {user?.email}
               </p>
             </div>
           </div>
-          <div className="mt-4 space-y-2 border-t border-border/60 pt-4 text-xs">
-            <Row label="Role" value={<Badge variant="outline" className="capitalize">{role}</Badge>} />
-            <Row label="Customer ID" value={<code className="font-mono text-[10px]">{customerId ?? "—"}</code>} />
+          <div className="mt-4 space-y-2 border-t border-white/10 pt-4 text-xs">
+            <Row
+              label="Role"
+              value={
+                <span className="rounded-md border border-white/10 bg-white/[0.04] px-2 py-0.5 capitalize text-slate-300">
+                  {role}
+                </span>
+              }
+            />
+            <Row label="Customer ID" value={<code className="font-mono text-[10px] text-amber-300">{customerId ?? "—"}</code>} />
             {isStaff && (
-              <Row label="Staff access" value={
-                <Button asChild size="sm" variant="default" className="h-7">
-                  <Link href="/admin"><LayoutDashboard className="size-3" /> Admin Panel</Link>
-                </Button>
-              } />
+              <Row
+                label="Staff access"
+                value={
+                  <Link
+                    href="/admin"
+                    className="btn-gold-gradient inline-flex h-7 items-center gap-1 rounded-md px-2 text-[11px] font-semibold"
+                  >
+                    <LayoutDashboard className="size-3" /> Admin
+                  </Link>
+                }
+              />
             )}
           </div>
-          <Button variant="outline" size="sm" className="mt-4 w-full" onClick={onSignOut}>
+          <button
+            onClick={onSignOut}
+            className="mt-4 inline-flex h-10 w-full items-center justify-center gap-2 rounded-md border border-white/10 bg-white/[0.03] text-sm font-medium text-slate-300 transition-colors hover:bg-rose-500/10 hover:text-rose-300"
+          >
             <LogOut className="size-4" /> Sign out
-          </Button>
+          </button>
         </div>
 
-        <div className="rounded-2xl border border-border/60 bg-card p-5 gradient-card">
-          <p className="text-xs text-muted-foreground">Lifetime spend</p>
-          <p className="text-2xl font-extrabold tracking-tight">{formatMoney(totalSpent, "PKR")}</p>
-          <p className="mt-1 text-[11px] text-muted-foreground">
+        <div className="glass-navy-panel p-5">
+          <p className="text-xs text-slate-400">Lifetime spend</p>
+          <p className="text-2xl font-extrabold tracking-tight text-amber-300">
+            {formatMoney(totalSpent, "PKR")}
+          </p>
+          <p className="mt-1 text-[11px] text-slate-500">
             {orders?.length ?? 0} order{(orders?.length ?? 0) === 1 ? "" : "s"} placed
           </p>
         </div>
@@ -334,72 +372,86 @@ function SignedIn({
       {/* Orders */}
       <section className="space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="flex items-center gap-2 text-lg font-semibold">
-            <Package className="size-5 text-primary" /> Order History
+          <h2 className="flex items-center gap-2 text-lg font-semibold text-white">
+            <Package className="size-5 text-amber-300" /> Order History
           </h2>
         </div>
 
         {loadingOrders ? (
           <div className="space-y-3">
             {Array.from({ length: 2 }).map((_, i) => (
-              <Skeleton key={i} className="h-40 w-full rounded-xl" />
+              <div key={i} className="glass-navy-panel h-40 animate-pulse" />
             ))}
           </div>
         ) : !orders || orders.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-border/60 bg-accent/20 p-12 text-center">
-            <div className="mx-auto mb-3 flex size-12 items-center justify-center rounded-full bg-primary/10 text-primary">
+          <div className="rounded-2xl border border-dashed border-white/10 bg-white/[0.02] p-12 text-center">
+            <div className="mx-auto mb-3 flex size-12 items-center justify-center rounded-full bg-amber-400/10 text-amber-300 ring-1 ring-amber-400/30">
               <Package className="size-5" />
             </div>
-            <p className="text-sm font-medium">No orders yet</p>
-            <p className="mt-1 text-xs text-muted-foreground">
+            <p className="text-sm font-medium text-white">No orders yet</p>
+            <p className="mt-1 text-xs text-slate-400">
               When you place an order it will appear here with all your license keys.
             </p>
-            <Button asChild size="sm" className="mt-4">
-              <Link href="/products"><ShoppingBag className="size-4" /> Start shopping</Link>
-            </Button>
+            <Link
+              href="/products"
+              className="btn-gold-gradient mt-4 inline-flex h-10 items-center justify-center gap-2 rounded-lg px-4 text-sm font-semibold"
+            >
+              <ShoppingBag className="size-4" /> Start shopping
+            </Link>
           </div>
         ) : (
           <div className="space-y-3">
             {orders.map((order) => {
               const tone = STATUS_TONE[order.status] ?? STATUS_TONE.pending;
               return (
-                <div key={order.id} className="rounded-xl border border-border/60 bg-card p-5 gradient-card">
-                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/60 pb-3">
+                <div key={order.id} className="glass-navy-panel p-5">
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/10 pb-3">
                     <div className="flex items-center gap-2">
-                      <Hash className="size-4 text-muted-foreground" />
-                      <span className="font-mono text-sm font-bold">{order.orderNumber}</span>
+                      <Hash className="size-4 text-slate-500" />
+                      <span className="font-mono text-sm font-bold text-amber-300">{order.orderNumber}</span>
                     </div>
-                    <div className="flex items-center gap-1.5">
-                      <Badge variant="outline" className={`capitalize ${tone}`}>{order.status}</Badge>
-                      <Badge variant="outline" className="capitalize">{order.paymentStatus}</Badge>
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <span className={`rounded-md border px-2 py-0.5 text-[10px] font-semibold capitalize ${tone}`}>
+                        {order.status}
+                      </span>
+                      <span className="rounded-md border border-white/10 bg-white/[0.04] px-2 py-0.5 text-[10px] font-semibold capitalize text-slate-300">
+                        {order.paymentStatus}
+                      </span>
                       {order.paymentMethod && (
-                        <Badge variant="outline" className="capitalize">{order.paymentMethod.replace("-", " ")}</Badge>
+                        <span className="rounded-md border border-white/10 bg-white/[0.04] px-2 py-0.5 text-[10px] font-semibold capitalize text-slate-300">
+                          {order.paymentMethod.replace("-", " ")}
+                        </span>
                       )}
                     </div>
                   </div>
-                  <div className="mt-3 flex items-center gap-4 text-xs text-muted-foreground">
+                  <div className="mt-3 flex items-center gap-4 text-xs text-slate-400">
                     <span className="flex items-center gap-1">
                       <CalendarDays className="size-3" />
                       {order.createdAt ? new Date(order.createdAt).toLocaleString() : "—"}
                     </span>
-                    <span className="font-semibold text-foreground">{formatMoney(order.total, order.currency ?? "PKR")}</span>
+                    <span className="font-semibold text-amber-300">
+                      {formatMoney(order.total, order.currency ?? "PKR")}
+                    </span>
                   </div>
 
                   {/* Items + keys */}
                   <div className="mt-3 space-y-2">
                     {order.items.map((item) => (
-                      <div key={item.id} className="rounded-lg border border-border/60 bg-background/40 p-3">
+                      <div
+                        key={item.id}
+                        className="rounded-lg border border-white/[0.07] bg-white/[0.02] p-3"
+                      >
                         <div className="flex items-start justify-between gap-2">
                           <div className="min-w-0">
-                            <p className="line-clamp-1 text-sm font-medium">{item.name}</p>
-                            <p className="text-[11px] text-muted-foreground">
+                            <p className="line-clamp-1 text-sm font-medium text-white">{item.name}</p>
+                            <p className="text-[11px] text-slate-500">
                               Qty {item.quantity} · {formatMoney(item.price * item.quantity, order.currency ?? "PKR")} · {item.deliveryType}
                             </p>
                           </div>
                           {Array.isArray(item.licenseKeys) && item.licenseKeys.length > 0 && (
-                            <Badge variant="outline" className="gap-1 text-[10px]">
+                            <span className="inline-flex items-center gap-1 rounded-md border border-amber-400/30 bg-amber-400/10 px-2 py-0.5 text-[10px] font-semibold text-amber-300">
                               <KeyRound className="size-3" /> {item.licenseKeys.length} key{item.licenseKeys.length === 1 ? "" : "s"}
-                            </Badge>
+                            </span>
                           )}
                         </div>
                         {Array.isArray(item.licenseKeys) && item.licenseKeys.length > 0 && (
@@ -407,18 +459,16 @@ function SignedIn({
                             {item.licenseKeys.map((key, idx) => (
                               <div
                                 key={key + idx}
-                                className="flex items-center justify-between gap-2 rounded-md border border-border/60 bg-background/60 px-2.5 py-1.5"
+                                className="flex items-center justify-between gap-2 rounded-md border border-white/[0.07] bg-[#070B19] px-2.5 py-1.5"
                               >
-                                <code className="font-mono text-[11px] break-all">{key}</code>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="size-6 shrink-0"
+                                <code className="font-mono text-[11px] text-amber-200 break-all">{key}</code>
+                                <button
+                                  className="inline-flex size-6 shrink-0 items-center justify-center rounded-md text-slate-400 hover:bg-amber-400/10 hover:text-amber-300"
                                   onClick={() => onCopyKey(key)}
                                   aria-label="Copy key"
                                 >
                                   <Copy className="size-3" />
-                                </Button>
+                                </button>
                               </div>
                             ))}
                           </div>
@@ -439,7 +489,7 @@ function SignedIn({
 function Row({ label, value }: { label: string; value: ReactNode }) {
   return (
     <div className="flex items-center justify-between gap-2">
-      <span className="text-muted-foreground">{label}</span>
+      <span className="text-slate-400">{label}</span>
       <span className="text-right">{value}</span>
     </div>
   );
