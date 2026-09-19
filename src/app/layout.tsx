@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
-import { useEffect } from "react";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as SonnerToaster } from "@/components/ui/sonner";
 import { MetaPixel } from "@/components/meta-pixel";
 import { Providers } from "@/components/providers";
+import { ServiceWorkerCleanup } from "@/components/sw-cleanup";
 
 const inter = Inter({
   variable: "--font-geist-sans",
@@ -59,22 +59,6 @@ export const headers = {
   "Pragma": "no-cache",
   "Expires": "0",
 };
-
-// Unregister any stale service workers from previous deployments
-function ServiceWorkerCleanup() {
-  "use client";
-  useEffect(() => {
-    if (typeof window !== "undefined" && "serviceWorker" in navigator) {
-      navigator.serviceWorker.getRegistrations().then((registrations) => {
-        registrations.forEach((reg) => {
-          console.log("[sw-cleanup] Unregistering stale service worker:", reg.scope);
-          reg.unregister();
-        });
-      }).catch(() => {});
-    }
-  }, []);
-  return null;
-}
 
 export default function RootLayout({
   children,
