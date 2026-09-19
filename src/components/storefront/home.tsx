@@ -136,6 +136,17 @@ export function StorefrontHome() {
     <StorefrontLayout>
       {/* ============ HERO ============ */}
       <section className="relative overflow-hidden">
+        {/* Landing background image */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 -z-20 bg-cover bg-center opacity-25"
+          style={{ backgroundImage: "url(/landing-bg.jpg)" }}
+        />
+        {/* Dark overlay for text readability */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-b from-[#050814]/80 via-[#050814]/70 to-[#050814]"
+        />
         {/* Aurora blobs */}
         <div
           aria-hidden
