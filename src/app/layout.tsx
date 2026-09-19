@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
+import { useEffect } from "react";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as SonnerToaster } from "@/components/ui/sonner";
@@ -19,6 +20,8 @@ const jetMono = JetBrains_Mono({
 });
 
 export const dynamic = "force-dynamic";
+
+export const fetchCache = "force-no-store";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://playbeat.digital"),
@@ -50,6 +53,29 @@ export const metadata: Metadata = {
   },
 };
 
+// Force browsers to not cache the HTML (prevents stale old deployments)
+export const headers = {
+  "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+  "Pragma": "no-cache",
+  "Expires": "0",
+};
+
+// Unregister any stale service workers from previous deployments
+function ServiceWorkerCleanup() {
+  "use client";
+  useEffect(() => {
+    if (typeof window !== "undefined" && "serviceWorker" in navigator) {
+      navigator.serviceWorker.getRegistrations().then((registrations) => {
+        registrations.forEach((reg) => {
+          console.log("[sw-cleanup] Unregistering stale service worker:", reg.scope);
+          reg.unregister();
+        });
+      }).catch(() => {});
+    }
+  }, []);
+  return null;
+}
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -72,6 +98,7 @@ export default function RootLayout({
         className={`${inter.variable} ${jetMono.variable} antialiased bg-background text-foreground`}
       >
         <Providers>
+          <ServiceWorkerCleanup />
           {children}
           <Toaster />
           <SonnerToaster richColors position="top-right" />

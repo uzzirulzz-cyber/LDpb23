@@ -87,22 +87,36 @@ export function StorefrontHome() {
 
   useEffect(() => {
     let cancelled = false;
-    (async () => {
+    let retryCount = 0;
+    const maxRetries = 3;
+
+    const loadProducts = async () => {
       try {
         const res = await fetch("/api/store/products?limit=8", { cache: "no-store" });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const json: TrendingResponse = await res.json();
         if (cancelled) return;
         if (json.error) throw new Error(json.error);
         setProducts(json.data ?? []);
       } catch (e) {
-        if (!cancelled) {
-          setProducts([]);
-          toast.error("Could not load products", { description: e instanceof Error ? e.message : "Unknown error" });
+        if (cancelled) return;
+        retryCount++;
+        if (retryCount < maxRetries) {
+          // Retry after 1s, 2s, 4s
+          setTimeout(loadProducts, 1000 * retryCount);
+          return;
         }
+        setProducts([]);
+        toast.error("Could not load products", { description: e instanceof Error ? e.message : "Unknown error" });
       } finally {
-        if (!cancelled) setLoading(false);
+        if (!cancelled && retryCount >= maxRetries) setLoading(false);
+        else if (!cancelled) {
+          // Set loading false once we have products or exhausted retries
+          if (retryCount === 0) setLoading(false);
+        }
       }
-    })();
+    };
+    loadProducts();
     return () => { cancelled = true; };
   }, []);
 
