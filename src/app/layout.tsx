@@ -19,6 +19,7 @@ const jetMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://playbeat.digital"),
   title: "playbeat.digital — Instant Digital Delivery · Gaming Keys, Subscriptions, AI Tools & Smart Projectors",
   description:
     "Premium digital marketplace for gaming keys, subscriptions, AI tools, SaaS licenses & smart projectors. Instant delivery, verified keys, PKR pricing. The Playbeat CRM + Storefront platform.",
